@@ -31,4 +31,8 @@ namespace xboxkrnl
 		IN  PLARGE_INTEGER NewTime,
 		OUT PLARGE_INTEGER OldTime
 	);
+
+	VOID NTAPI KeInitializeTimer(
+		IN PKTIMER Timer
+	);
 }
