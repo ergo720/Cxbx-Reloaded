@@ -176,13 +176,13 @@ static const uint8_t HubDescriptor[] =
 bool ConstructHub(int port)
 {
 	if (port > PORT_4 || port < PORT_1) {
-		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", port);
+		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", PORT_INC(port));
 		return false;
 	};
 
 	if (g_HubObjArray[port] == nullptr) {
 		g_HubObjArray[port] = new Hub;
-		int ret = g_HubObjArray[port]->Init(port + 1);
+		int ret = g_HubObjArray[port]->Init(port);
 		if (ret) {
 			delete g_HubObjArray[port];
 			g_HubObjArray[port] = nullptr;
@@ -190,7 +190,7 @@ bool ConstructHub(int port)
 		}
 	}
 	else {
-		EmuLog(LOG_LEVEL::WARNING, "Hub already present at port %d", port);
+		EmuLog(LOG_LEVEL::WARNING, "Hub already present at port %d", PORT_INC(port));
 		return false;
 	}
 	return true;
@@ -199,7 +199,6 @@ bool ConstructHub(int port)
 void DestructHub(int port)
 {
 	assert(port >= PORT_1 && port <= PORT_4);
-
 	g_HubObjArray[port]->HubDestroy();
 	delete g_HubObjArray[port];
 	g_HubObjArray[port] = nullptr;
@@ -250,6 +249,7 @@ XboxDeviceState* Hub::ClassInitFn()
 int Hub::UsbHubClaimPort(XboxDeviceState* dev, int port)
 {
 	int i;
+	int port1;
 	std::vector<USBPort*>::iterator it;
 
 	assert(dev->Port == nullptr);
@@ -257,16 +257,17 @@ int Hub::UsbHubClaimPort(XboxDeviceState* dev, int port)
 	m_UsbDev = g_USB0;
 	it = m_UsbDev->m_FreePorts.end();
 	i = 0;
+	port1 = PORT_INC(port);
 
 	for (auto usb_port : m_UsbDev->m_FreePorts) {
-		if (usb_port->Path == std::to_string(port)) {
+		if (usb_port->Path == std::to_string(port1)) {
 			it = m_UsbDev->m_FreePorts.begin() + i;
 			break;
 		}
 		i++;
 	}
 	if (it == m_UsbDev->m_FreePorts.end()) {
-		EmuLog(LOG_LEVEL::WARNING, "Port requested %d not found (in use?)", port);
+		EmuLog(LOG_LEVEL::WARNING, "Requested hw port %d not found (in use?)", port1);
 		return -1;
 	}
 	dev->Port = *it;
@@ -576,8 +577,8 @@ void Hub::UsbHub_HandleDestroy()
 
 	for (int i = 0; i < NUM_PORTS; i++) {
 		if (m_HubState->ports[i].port.Dev) {
-			// Also destroy attached downstream device
-			m_HubState->ports[i].port.Dev->klass->handle_destroy();
+			// Also destroy attached downstream
+			m_UsbDev->USB_DeviceHandleDestroy(m_HubState->ports[i].port.Dev);
 		}
 		else {
 			m_UsbDev->USB_UnregisterPort(&m_HubState->ports[i].port);

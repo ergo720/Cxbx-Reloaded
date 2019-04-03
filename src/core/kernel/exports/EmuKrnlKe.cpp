@@ -2073,7 +2073,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 		}
 	} while (TRUE);
 
-	// NOTE: we don't need to remove the wait blocks for the object and/or the timer becasue InsertTailList is disabled at
+	// NOTE: we don't need to remove the wait blocks for the object and/or the timer because InsertTailList is disabled at
 	// the moment, which means they are never attached to the object wait list. TimerWaitBlock can also stay attached to the timer wait
 	// list since KiTimerExpiration disregards it for now.
 
@@ -2211,7 +2211,6 @@ XBSYSAPI EXPORTNUM(159) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForSingleObject
 					Timer->Header.WaitListHead.Blink = &WaitTimer->WaitListEntry;
 					WaitTimer->NextWaitBlock = WaitBlock;
 					if (KiInsertTreeTimer(Timer, *Timeout) == FALSE) {
-						DBG_PRINTF("%s: KiInsertTreeTimer(Timer, *Timeout) == FALSE\n", __func__);
 						WaitStatus = (NTSTATUS)STATUS_TIMEOUT;
 						KiTimerUnlock();
 						goto NoWait;
@@ -2287,7 +2286,7 @@ XBSYSAPI EXPORTNUM(159) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForSingleObject
 		}
 	} while (TRUE);
 
-	// NOTE: we don't need to remove the wait blocks for the object and/or the timer becasue InsertTailList is disabled at
+	// NOTE: we don't need to remove the wait blocks for the object and/or the timer because InsertTailList is disabled at
 	// the moment, which means they are never attached to the object wait list. TimerWaitBlock can also stay attached to the timer wait
 	// list since KiTimerExpiration disregards it for now.
 

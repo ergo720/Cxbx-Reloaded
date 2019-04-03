@@ -57,7 +57,7 @@ void InputWindow::Initialize(HWND hwnd, HWND hwnd_krnl, int port_num, int dev_ty
 	m_hwnd_krnl = hwnd_krnl;
 	m_dev_type = dev_type;
 	m_max_num_buttons = dev_num_buttons[dev_type];
-	m_port_num = port_num - 1;
+	m_port_num = port_num;
 
 	// Set window icon
 	SetClassLong(m_hwnd_window, GCL_HICON, (LONG)LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_CXBX)));
@@ -80,7 +80,7 @@ void InputWindow::Initialize(HWND hwnd, HWND hwnd_krnl, int port_num, int dev_ty
 			break;
 	}
 	SendMessage(m_hwnd_window, WM_SETTEXT, 0,
-		reinterpret_cast<LPARAM>((title + std::to_string(port_num)).c_str()));
+		reinterpret_cast<LPARAM>((title + std::to_string(PORT_INC(m_port_num))).c_str()));
 
 	// construct emu device
 	m_DeviceConfig = new EmuDevice(m_dev_type, m_hwnd_window);
@@ -127,6 +127,8 @@ void InputWindow::UpdateDeviceList()
 	if (!dev_list.empty()) {
 		SendMessage(m_hwnd_device_list, CB_SETCURSEL, 0, 0);
 	}
+
+	UpdateCurrentDevice();
 }
 
 InputDevice::Input* InputWindow::DetectInput(InputDevice* const Device, int ms)
@@ -369,9 +371,9 @@ void InputWindow::DetectOutput(int ms)
 	if (dev != nullptr) {
 		// Don't block the message processing loop
 		std::thread([this, dev, ms]() {
+			EnableWindow(m_hwnd_rumble, FALSE);
 			HWND hwnd_rumble_test = GetDlgItem(m_hwnd_rumble, IDC_RUMBLE_TEST);
 			SendMessage(hwnd_rumble_test, WM_SETTEXT, 0, reinterpret_cast<LPARAM>("..."));
-			EnableWindow(m_hwnd_rumble, FALSE);
 			auto outputs = dev->GetOutputs();
 			for (const auto out : outputs) {
 				if (out->GetName() == m_rumble) {

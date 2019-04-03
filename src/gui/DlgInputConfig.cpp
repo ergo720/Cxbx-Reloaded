@@ -39,6 +39,14 @@
 static INT_PTR CALLBACK DlgInputConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 HWND g_ChildWnd = NULL;
 
+int Gui2XboxPortArray[4] = {
+	 3,
+	 4,
+	 1,
+	 2
+};
+
+
 void SyncInputSettings(int port_num, int dev_type)
 {
 	if (g_ChildWnd) {
@@ -65,7 +73,7 @@ void SyncInputSettings(int port_num, int dev_type)
 				g_EmuShared->SetInputBindingsSettings(controls_name, XBOX_CTRL_NUM_BUTTONS, port_num);
 			}
 		}
-		ipc_send_kernel_update(IPC_UPDATE_KERNEL::CONFIG_INPUT_SYNC, port_num,
+		ipc_send_kernel_update(IPC_UPDATE_KERNEL::CONFIG_INPUT_SYNC, PORT_DEC(Gui2XboxPortArray[port_num]),
 			reinterpret_cast<std::uintptr_t>(g_ChildWnd));
 	}
 }
@@ -126,13 +134,20 @@ INT_PTR CALLBACK DlgInputConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
 				case IDC_CONFIGURE_PORT3:
 				case IDC_CONFIGURE_PORT4: {
 					if (HIWORD(wParam) == BN_CLICKED) {
-						HWND hHandle = GetDlgItem(hWndDlg, LOWORD(wParam) - 4);
+						int port =
+							LOWORD(wParam) == IDC_CONFIGURE_PORT1 ? 0 :
+							LOWORD(wParam) == IDC_CONFIGURE_PORT2 ? 1 :
+							LOWORD(wParam) == IDC_CONFIGURE_PORT3 ? 2 :
+							LOWORD(wParam) == IDC_CONFIGURE_PORT4 ? 3 :
+							-1;
+						assert(port != -1);
+						HWND hHandle = GetDlgItem(hWndDlg, IDC_DEVICE_PORT1 + port);
 						int DeviceType = SendMessage(hHandle, CB_GETITEMDATA, SendMessage(hHandle, CB_GETCURSEL, 0, 0), 0);
 						switch (DeviceType)
 						{
 							case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE): {
 								DialogBoxParam(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_XID_DUKE_CFG), hWndDlg, DlgXidControllerConfigProc,
-									(DeviceType << 8) | (LOWORD(wParam) & 7));
+									(DeviceType << 8) | port);
 							}
 							break;
 
@@ -143,7 +158,7 @@ INT_PTR CALLBACK DlgInputConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
 							DeviceType < to_underlying(XBOX_INPUT_DEVICE::DEVICE_MAX));
 
 						// Also inform the kernel process if it exists
-						SyncInputSettings((LOWORD(wParam) & 7) - 1, DeviceType);
+						SyncInputSettings(port, DeviceType);
 					}
 				}
 				break;
@@ -156,17 +171,24 @@ INT_PTR CALLBACK DlgInputConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 						LRESULT dev_type = SendMessage(GetDlgItem(hWndDlg, LOWORD(wParam)), CB_GETITEMDATA,
 							SendMessage(GetDlgItem(hWndDlg, LOWORD(wParam)), CB_GETCURSEL, 0, 0), 0);
+						int port =
+							LOWORD(wParam) == IDC_DEVICE_PORT1 ? 0 :
+							LOWORD(wParam) == IDC_DEVICE_PORT2 ? 1 :
+							LOWORD(wParam) == IDC_DEVICE_PORT3 ? 2 :
+							LOWORD(wParam) == IDC_DEVICE_PORT4 ? 3 :
+							-1;
+						assert(port != -1);
 						if (dev_type == to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID)) {
-							EnableWindow(GetDlgItem(hWndDlg, LOWORD(wParam) + 4), FALSE);
+							EnableWindow(GetDlgItem(hWndDlg, IDC_CONFIGURE_PORT1 + port), FALSE);
 						}
 						else {
-							EnableWindow(GetDlgItem(hWndDlg, LOWORD(wParam) + 4), TRUE);
+							EnableWindow(GetDlgItem(hWndDlg, IDC_CONFIGURE_PORT1 + port), TRUE);
 						}
-						int port_num = ((LOWORD(wParam) + 4) & 7) - 1;
-						g_Settings->m_input[port_num].Type = dev_type;
+
+						g_Settings->m_input[port].Type = dev_type;
 
 						// Also inform the kernel process if it exists
-						SyncInputSettings(port_num, dev_type);
+						SyncInputSettings(port, dev_type);
 					}
 				}
 				break;

@@ -39,11 +39,11 @@ INT_PTR CALLBACK DlgXidControllerConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wPar
 	{
 		case WM_INITDIALOG:
 		{
-			int port_num = lParam & 7;
-			int dev_type = lParam >> 8;
+			int port_num = lParam & 0xFF;
+			int dev_type = (lParam & 0xFF00) >> 8;
 
 			// Ensure that port_num is a valid xbox port
-			assert(port_num < 5 && port_num > 0);
+			assert(port_num >= PORT_1 && port_num <= PORT_4);
 
 			// Ensure that the controller type is valid
 			assert(dev_type == to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE) ||

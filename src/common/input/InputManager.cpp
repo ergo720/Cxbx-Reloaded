@@ -124,8 +124,6 @@ void InputDeviceManager::AddDevice(std::shared_ptr<InputDevice> Device)
 		}
 	}
 	Device->SetId(ID);
-	Device->SetPort(PORT_INVALID);
-	Device->SetType(to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID));
 
 	EmuLog(LOG_LEVEL::INFO, "Added device: %s", Device->GetQualifiedName().c_str());
 	m_Devices.emplace_back(std::move(Device));
@@ -154,42 +152,48 @@ void InputDeviceManager::RemoveDevice(std::function<bool(const InputDevice*)> Ca
 
 void InputDeviceManager::UpdateDevices(int port, bool ack)
 {
+	if (port > PORT_4 || port < PORT_1) {
+		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", PORT_INC(port));
+		return;
+	}
 	int type;
+	int usb_port = PORT_DEC(Gui2XboxPortArray[port]);
 	g_EmuShared->GetInputDevTypeSettings(&type, port);
 
 	// connect
 	if (type != to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID) &&
-		g_HubObjArray[port] == nullptr) {
-		ConnectDevice(port, type);
+		g_XidDeviceObjArray[usb_port].xid_dev == nullptr) {
+		ConnectDevice(port, usb_port, type);
 	}
 	// disconnect
 	else if (type == to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID) &&
-		g_HubObjArray[port] != nullptr) {
-		DisconnectDevice(port, ack);
+		g_XidDeviceObjArray[usb_port].xid_dev != nullptr) {
+		DisconnectDevice(port, usb_port, ack);
 	}
 	// update bindings
 	else {
-		auto dev = g_InputDeviceManager.FindDevice(port, 0);
+		auto dev = g_InputDeviceManager.FindDevice(usb_port, 0);
 		if (dev != nullptr) {
-			dev->SetType(to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID));
-			dev->SetPort(PORT_INVALID);
+			dev->SetPort(usb_port, false);
 		}
 		if (type != to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID)) {
-			BindHostDevice(port, type);
+			BindHostDevice(port, usb_port, type);
 		}
 	}
 }
 
-void InputDeviceManager::ConnectDevice(int port, int type)
+void InputDeviceManager::ConnectDevice(int port, int usb_port, int type)
 {
 	switch (type)
 	{
 		case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE): {
-			if (ConstructHub(port)) {
-				if (!ConstructXpadDuke(port)) {
-					DestructHub(port);
+			if (ConstructHub(usb_port)) {
+				if (!ConstructXpadDuke(usb_port)) {
+					DestructHub(usb_port);
+					return;
 				}
-				g_XidDeviceObjArray[port].xid_type = type;
+				g_XidDeviceObjArray[usb_port].xid_type = type;
+				EmuLog(LOG_LEVEL::INFO, "Attached device %s to port %d", GetInputDeviceName(type).c_str(), PORT_INC(port));
 			}	
 		}
 		break;
@@ -200,7 +204,7 @@ void InputDeviceManager::ConnectDevice(int port, int type)
 		case to_underlying(XBOX_INPUT_DEVICE::MEMORY_UNIT):
 		case to_underlying(XBOX_INPUT_DEVICE::IR_DONGLE):
 		case to_underlying(XBOX_INPUT_DEVICE::STEEL_BATTALION_CONTROLLER): {
-			EmuLog(LOG_LEVEL::INFO, "Device type %d is not yet supported", type);
+			EmuLog(LOG_LEVEL::INFO, "%s: device %s is not yet supported", __func__, GetInputDeviceName(type).c_str());
 			return;
 		}
 
@@ -209,30 +213,26 @@ void InputDeviceManager::ConnectDevice(int port, int type)
 			return;
 	}
 
-	BindHostDevice(port, type);
+	BindHostDevice(port, usb_port, type);
 }
 
-void InputDeviceManager::DisconnectDevice(int port, bool ack)
+void InputDeviceManager::DisconnectDevice(int port, int usb_port, bool ack)
 {
-	if (port > PORT_4 || port < PORT_1) {
-		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", port);
-		return;
-	}
-
-	if (g_XidDeviceObjArray[port].xid_dev != nullptr) {
-		assert(g_HubObjArray[port] != nullptr);
-		int type = g_XidDeviceObjArray[port].xid_type;
+	if (g_XidDeviceObjArray[usb_port].xid_dev != nullptr) {
+		int type = g_XidDeviceObjArray[usb_port].xid_type;
 
 		switch (type)
 		{
 			case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE): {
 				if (ack) {
-					DestructHub(port);
-					DestructXpadDuke(port);
-					g_HostController->OHCI_SetRemovalFlag(port, false);
+					assert(g_HubObjArray[usb_port] != nullptr);
+					DestructHub(usb_port);
+					DestructXpadDuke(usb_port);
+					g_HostController->OHCI_SetRemovalFlag(usb_port, false);
+					EmuLog(LOG_LEVEL::INFO, "Detached device %s from port %d", GetInputDeviceName(type).c_str(), PORT_INC(port));
 				}
 				else {
-					g_HostController->OHCI_SetRemovalFlag(port, true);
+					g_HostController->OHCI_SetRemovalFlag(usb_port, true);
 				}
 			}
 			break;
@@ -243,17 +243,17 @@ void InputDeviceManager::DisconnectDevice(int port, bool ack)
 			case to_underlying(XBOX_INPUT_DEVICE::MEMORY_UNIT):
 			case to_underlying(XBOX_INPUT_DEVICE::IR_DONGLE):
 			case to_underlying(XBOX_INPUT_DEVICE::STEEL_BATTALION_CONTROLLER): {
-				EmuLog(LOG_LEVEL::INFO, "Device type %d is not yet supported", type);
+				EmuLog(LOG_LEVEL::INFO, "%s: device %s is not yet supported", __func__, GetInputDeviceName(type).c_str());
+				return;
 			}
-			break;
 
 			default:
 				EmuLog(LOG_LEVEL::WARNING, "Attempted to detach an unknown device type (type was %d)", type);
+				return;
 		}
-		auto dev = g_InputDeviceManager.FindDevice(port, 0);
+		auto dev = g_InputDeviceManager.FindDevice(usb_port, 0);
 		if (dev != nullptr) {
-			dev->SetType(to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID));
-			dev->SetPort(PORT_INVALID);
+			dev->SetPort(usb_port, false);
 		}
 	}
 	else {
@@ -261,7 +261,7 @@ void InputDeviceManager::DisconnectDevice(int port, bool ack)
 	}
 }
 
-void InputDeviceManager::BindHostDevice(int port, int type)
+void InputDeviceManager::BindHostDevice(int port, int usb_port, int type)
 {
 	char dev_name[50];
 	char dev_control_names[XBOX_CTRL_NUM_BUTTONS][30];
@@ -282,21 +282,22 @@ void InputDeviceManager::BindHostDevice(int port, int type)
 				});
 				dev->SetBindings(index, (it != controls.end()) ? *it : nullptr);
 		}
-		dev->SetType(type);
-		dev->SetPort(port);
+		dev->SetPort(usb_port, true);
 	}
 }
 
-bool InputDeviceManager::UpdateXboxPortInput(int Port, void* Buffer, int Direction)
+bool InputDeviceManager::UpdateXboxPortInput(int usb_port, void* Buffer, int Direction, int xid_type)
 {
 	assert(Direction == DIRECTION_IN || Direction == DIRECTION_OUT);
+	assert(xid_type > to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID) &&
+		xid_type < to_underlying(XBOX_INPUT_DEVICE::DEVICE_MAX));
 	bool has_changed = false;
 
 	// If somebody else is currently holding the lock, we won't wait and instead report no input changes
 	if (m_Mtx.try_lock()) {
 		for (auto dev_ptr : m_Devices) {
-			if (dev_ptr->GetPort() == Port) {
-				switch (dev_ptr->GetType())
+			if (dev_ptr->GetPort(usb_port)) {
+				switch (xid_type)
 				{
 					case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE): {
 						has_changed = UpdateInputXpad(dev_ptr, Buffer, Direction);
@@ -309,12 +310,14 @@ bool InputDeviceManager::UpdateXboxPortInput(int Port, void* Buffer, int Directi
 					case to_underlying(XBOX_INPUT_DEVICE::MEMORY_UNIT):
 					case to_underlying(XBOX_INPUT_DEVICE::IR_DONGLE):
 					case to_underlying(XBOX_INPUT_DEVICE::STEEL_BATTALION_CONTROLLER): {
-						EmuLog(LOG_LEVEL::WARNING, "Port %d has an unsupported device attached! The type was %d", Port, dev_ptr->GetType());
+						EmuLog(LOG_LEVEL::WARNING, "An unsupported device is attached at port %d! The device was %s",
+							Gui2XboxPortArray[usb_port], GetInputDeviceName(xid_type).c_str());
 					}
 					break;
 
 					default: {
-						EmuLog(LOG_LEVEL::WARNING, "Port %d has an unknown device attached! The type was %d", Port, dev_ptr->GetType());
+						EmuLog(LOG_LEVEL::WARNING, "An unknown device attached at port %d! The type was %s",
+							Gui2XboxPortArray[usb_port], GetInputDeviceName(xid_type).c_str());
 					}
 				}
 			}
@@ -448,14 +451,18 @@ std::shared_ptr<InputDevice> InputDeviceManager::FindDevice(SDL_JoystickID id) c
 	}
 }
 
-std::shared_ptr<InputDevice> InputDeviceManager::FindDevice(int port, int dummy) const
+std::shared_ptr<InputDevice> InputDeviceManager::FindDevice(int usb_port, int dummy) const
 {
-	// Ignore dummy, it's just used to allow overloading the function
+	// Ignore dummy, it's just used to overload the function
+
+	if (usb_port == PORT_INVALID) {
+		return nullptr;
+	}
 
 	std::lock_guard<std::mutex> lck(m_Mtx);
 
-	auto it = std::find_if(m_Devices.begin(), m_Devices.end(), [port](const auto& Device) {
-		return port == Device->GetPort();
+	auto it = std::find_if(m_Devices.begin(), m_Devices.end(), [usb_port](const auto& Device) {
+		return Device->GetPort(usb_port);
 	});
 	if (it != m_Devices.end()) {
 		return *it;

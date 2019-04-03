@@ -36,14 +36,17 @@
 #include <condition_variable>
 #include "SDL.h"
 
-#define PORT_INVALID  -1
-#define PORT_1         0
-#define PORT_2         1
-#define PORT_3         2
-#define PORT_4         3
+#define PORT_INVALID     -1
+#define PORT_1            0
+#define PORT_2            1
+#define PORT_3            2
+#define PORT_4            3
 
-#define DIRECTION_IN  0
-#define DIRECTION_OUT 1
+#define PORT_INC(port) ((port) + 1)
+#define PORT_DEC(port) ((port) - 1)
+
+#define DIRECTION_IN      0
+#define DIRECTION_OUT     1
 
 
 typedef double ControlState;
@@ -61,6 +64,12 @@ typedef enum class _XBOX_INPUT_DEVICE : int {
 	DEVICE_MAX,
 }
 XBOX_INPUT_DEVICE;
+
+// Lookup array used to translate a gui port to an xbox usb port and vice versa
+extern int Gui2XboxPortArray[4];
+
+// Global function used to retrieve the printable name of a xid type
+std::string GetInputDeviceName(int dev_type);
 
 /* Abstract class which represents a host device usable for input/output */
 class InputDevice
@@ -108,13 +117,9 @@ class InputDevice
 		// sets the ID of this device
 		void SetId(int ID) { m_ID = ID; }
 		// retrieves the port this device is attached to
-		int GetPort() const { return m_XboxPort; }
+		bool GetPort(int Port) const{ return m_XboxPort[Port]; }
 		// sets the port this device is attached to
-		void SetPort(int Port) { m_XboxPort = Port; }
-		// retrieves the device type
-		int GetType() const { return m_Type; }
-		// sets the device type
-		void SetType(int Type) { m_Type = Type; }
+		void SetPort(int Port, bool Connect) { m_XboxPort[Port] = Connect; }
 
 
 	protected:
@@ -171,10 +176,8 @@ class InputDevice
 		std::vector<Input*> m_Inputs;
 		// all the output controls detected and usable on this device
 		std::vector<Output*> m_Outputs;
-		// xbox port this device is attached to
-		int m_XboxPort;
-		// the emulated xbox device type
-		int m_Type;
+		// xbox port(s) this device is attached to
+		bool m_XboxPort[4] = { false };
 		// button bindings to the xbox device buttons
 		std::map<int, IoControl*> m_Bindings;
 };

@@ -360,6 +360,7 @@ void OHCI::OHCI_FrameBoundaryWorker()
 			m_Registers.RhPort[i].bSignaled = true;
 
 			SDL_Event DeviceRemoveEvent;
+			SDL_memset(&DeviceRemoveEvent, 0, sizeof(SDL_Event));
 			DeviceRemoveEvent.type = Sdl::DeviceRemoveAck_t;
 			DeviceRemoveEvent.user.data1 = new int(i);
 			SDL_PushEvent(&DeviceRemoveEvent);
@@ -1223,6 +1224,7 @@ void OHCI::OHCI_WriteRegister(xbaddr Addr, uint32_t Value)
 
 			case 19: // HcRhDescriptorB
 				// Don't do anything, the attached devices are all removable and PowerSwitchingMode is always 0
+				DUMP_REG_RO(m_Registers.HcRhDescriptorB, Value);
 				break;
 
 			case 20: // HcRhStatus
@@ -1388,11 +1390,11 @@ void OHCI::OHCI_PortSetStatus(int PortNum, uint32_t Value)
 	OHCI_PortSetIfConnected(PortNum, Value & OHCI_PORT_PES);
 
 	if (OHCI_PortSetIfConnected(PortNum, Value & OHCI_PORT_PSS)) {
-		DBG_PRINTF("port %d: SUSPEND\n", PortNum);
+		DBG_PRINTF("port %d: SUSPEND (hw port %d)\n", Gui2XboxPortArray[PortNum], PortNum);
 	}
 
 	if (OHCI_PortSetIfConnected(PortNum, Value & OHCI_PORT_PRS)) {
-		DBG_PRINTF("port %d: RESET\n", PortNum);
+		DBG_PRINTF("port %d: RESET (hw port %d)\n", Gui2XboxPortArray[PortNum], PortNum);
 		m_UsbDevice->USB_DeviceReset(port->UsbPort.Dev);
 		port->HcRhPortStatus &= ~OHCI_PORT_PRS;
 		// ??? Should this also set OHCI_PORT_PESC
@@ -1460,7 +1462,7 @@ void OHCI::OHCI_Detach(USBPort* Port)
 		port->HcRhPortStatus |= OHCI_PORT_PESC;
 	}
 
-	DBG_PRINTF("Detached port %d\n", Port->PortIndex);
+	DBG_PRINTF("Detached port %d (hw port %d)\n", Gui2XboxPortArray[Port->PortIndex], Port->PortIndex);
 
 	if (old_state != port->HcRhPortStatus) {
 		OHCI_SetInterrupt(OHCI_INTR_RHSC);
@@ -1488,7 +1490,7 @@ void OHCI::OHCI_Attach(USBPort* Port)
 		OHCI_SetInterrupt(OHCI_INTR_RD);
 	}
 
-	DBG_PRINTF("Attached port %d\n", Port->PortIndex);
+	DBG_PRINTF("Attached port %d (hw port %d)\n", Gui2XboxPortArray[Port->PortIndex], Port->PortIndex);
 
 	if (old_state != port->HcRhPortStatus) {
 		OHCI_SetInterrupt(OHCI_INTR_RHSC);
@@ -1505,7 +1507,7 @@ void OHCI::OHCI_Wakeup(USBPort* port1)
 	OHCIPort* port = &m_Registers.RhPort[port1->PortIndex];
 	uint32_t intr = 0;
 	if (port->HcRhPortStatus & OHCI_PORT_PSS) {
-		DBG_PRINTF("port %d: wakeup\n", port1->PortIndex);
+		DBG_PRINTF("port %d: wakeup (hw port %d)\n", Gui2XboxPortArray[port1->PortIndex], port1->PortIndex);
 		port->HcRhPortStatus |= OHCI_PORT_PSSC;
 		port->HcRhPortStatus &= ~OHCI_PORT_PSS;
 		intr = OHCI_INTR_RHSC;

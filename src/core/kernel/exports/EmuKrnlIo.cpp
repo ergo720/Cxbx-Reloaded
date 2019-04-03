@@ -217,7 +217,9 @@ XBSYSAPI EXPORTNUM(65) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateDevice
 
 	LOG_UNIMPLEMENTED();
 
-	RETURN(STATUS_SUCCESS);
+	// NOTE: Return a failure to prevent dereferencing a nullptr on 'fake' success
+	// TODO: Implement this so LLE Memory Units can function (This is not required for GamePads)
+	RETURN(STATUS_INVALID_HANDLE);
 }
 
 // ******************************************************************

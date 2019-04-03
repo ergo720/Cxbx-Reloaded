@@ -52,8 +52,10 @@ class XidGamepad
 		USBXIDState* m_XidState = nullptr;
 		// gamepad class functions
 		USBDeviceClass* m_pPeripheralFuncStruct = nullptr;
-		// xbox port this gamepad is attached to
-		int m_Port = 0;
+		// port the xid is attached to
+		int m_Port;
+		// xid type
+		int m_Type;
 
 		// initialize various member variables/functions
 		XboxDeviceState* ClassInitFn();

@@ -776,10 +776,6 @@ std::string Settings::GetDataLocation()
 
 void Settings::RemoveLegacyInputConfigs(uint CurrentRevision)
 {
-	if (CurrentRevision > 3) {
-		return;
-	}
-
 	m_si.Delete(section_controller_dinput, nullptr, true);
 	m_si.Delete(section_controller_port, nullptr, true);
 }

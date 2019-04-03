@@ -26,8 +26,63 @@
 // ******************************************************************
 
 #include "InputDevice.h"
+#include "common\util\CxbxUtil.h"
 #include <algorithm>
 
+
+std::string GetInputDeviceName(int dev_type)
+{
+	std::string str;
+
+	switch (dev_type)
+	{
+		case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE): {
+			str = "MS Gamepad Duke";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_S): {
+			str = "MS Gamepad S";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::LIGHT_GUN): {
+			str = "Light gun";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::STEERING_WHEEL): {
+			str = "Steering wheel";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::MEMORY_UNIT): {
+			str = "Memory unit";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::IR_DONGLE): {
+			str = "IR dongle";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::STEEL_BATTALION_CONTROLLER): {
+			str = "Steel battalion controller";
+		}
+		break;
+
+		case to_underlying(XBOX_INPUT_DEVICE::DEVICE_INVALID):
+		case to_underlying(XBOX_INPUT_DEVICE::DEVICE_MAX): {
+			str = "Invalid";
+		}
+		break;
+
+		default:
+			str = "Unknown";
+	}
+
+	return str;
+}
 
 // Destructor, delete all inputs/outputs on device destruction
 InputDevice::~InputDevice()

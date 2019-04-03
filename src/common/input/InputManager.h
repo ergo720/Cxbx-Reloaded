@@ -36,6 +36,7 @@
 #undef SetPort
 #endif
 
+#pragma pack(1)
 
 // xpad in/out buffers stripped of the first two bytes
 struct XpadInput {
@@ -52,6 +53,8 @@ struct XpadOutput {
 	uint16_t right_actuator_strength;
 };
 
+#pragma pack()
+
 
 class InputDeviceManager
 {
@@ -59,7 +62,7 @@ class InputDeviceManager
 		void Initialize(bool is_gui);
 		void Shutdown();
 		// read/write the input/output from/to the device attached to the supplied xbox port
-		bool UpdateXboxPortInput(int Port, void* Buffer, int Direction);
+		bool UpdateXboxPortInput(int usb_port, void* Buffer, int Direction, int xid_type);
 		// add the device to the list of availble devices
 		void AddDevice(std::shared_ptr<InputDevice> Device);
 		// remove the device from the list of availble devices
@@ -73,7 +76,7 @@ class InputDeviceManager
 		// find device from its sdl id
 		std::shared_ptr<InputDevice> FindDevice(SDL_JoystickID id) const;
 		// find device from its xbox port
-		std::shared_ptr<InputDevice> FindDevice(int port, int dummy) const;
+		std::shared_ptr<InputDevice> FindDevice(int usb_port, int dummy) const;
 		// attach/detach guest devices to the emulated machine
 		void UpdateDevices(int port, bool ack);
 
@@ -82,11 +85,11 @@ class InputDeviceManager
 		// update input for an xbox controller
 		bool UpdateInputXpad(std::shared_ptr<InputDevice>& Device, void* Buffer, int Direction);
 		// bind a host device to an emulated device
-		void BindHostDevice(int port, int type);
-		// connect the enumerated device to the emulated machine
-		void ConnectDevice(int port, int type);
+		void BindHostDevice(int port, int usb_port, int type);
+		// connect a device to the emulated machine
+		void ConnectDevice(int port, int usb_port, int type);
 		// disconnect a device from the emulated machine
-		void DisconnectDevice(int port, bool ack);
+		void DisconnectDevice(int port, int usb_port, bool ack);
 
 		// all enumerated devices currently detected and supported
 		std::vector<std::shared_ptr<InputDevice>> m_Devices;

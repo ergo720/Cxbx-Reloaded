@@ -194,18 +194,18 @@ static const XIDDesc desc_xid_xbox_gamepad = {
 bool ConstructXpadDuke(int port)
 {
 	if (port > PORT_4 || port < PORT_1) {
-		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", port);
+		EmuLog(LOG_LEVEL::WARNING, "Invalid port number. The port was %d", PORT_INC(port));
 		return false;
 	}
 
 	if (g_HubObjArray[port] == nullptr) {
-		EmuLog(LOG_LEVEL::WARNING, "Cannot create xpad at port %d, hub not created yet", port);
+		EmuLog(LOG_LEVEL::WARNING, "Cannot create xpad at port %d, hub not created yet", PORT_INC(port));
 		return false;
 	}
 
 	if (g_XidDeviceObjArray[port].xid_dev == nullptr) {
 		g_XidDeviceObjArray[port].xid_dev = new XidGamepad;
-		int ret = static_cast<XidGamepad*>(g_XidDeviceObjArray[port].xid_dev)->Init(port + 1);
+		int ret = static_cast<XidGamepad*>(g_XidDeviceObjArray[port].xid_dev)->Init(port);
 		if (ret) {
 			delete g_XidDeviceObjArray[port].xid_dev;
 			g_XidDeviceObjArray[port].xid_dev = nullptr;
@@ -213,7 +213,7 @@ bool ConstructXpadDuke(int port)
 		}
 	}
 	else {
-		EmuLog(LOG_LEVEL::WARNING, "Xpad already present at port %d", port);
+		EmuLog(LOG_LEVEL::WARNING, "Xid device already present at port %d", PORT_INC(port));
 		return false;
 	}
 	return true;
@@ -222,7 +222,6 @@ bool ConstructXpadDuke(int port)
 void DestructXpadDuke(int port)
 {
 	assert(port >= PORT_1 && port <= PORT_4);
-
 	assert(g_HubObjArray[port] == nullptr);
 	delete g_XidDeviceObjArray[port].xid_dev;
 	g_XidDeviceObjArray[port].xid_dev = nullptr;
@@ -237,6 +236,7 @@ int XidGamepad::Init(int port)
 		delete m_XidState;
 		return rc;
 	}
+	m_Type = to_underlying(XBOX_INPUT_DEVICE::MS_CONTROLLER_DUKE);
 	m_UsbDev->USB_EpInit(dev);
 	m_UsbDev->USB_DeviceInit(dev);
 	m_UsbDev->USB_DeviceAttach(dev);
@@ -273,6 +273,7 @@ XboxDeviceState* XidGamepad::ClassInitFn()
 int XidGamepad::UsbXidClaimPort(XboxDeviceState* dev, int port)
 {
 	int i;
+	int port1;
 	std::vector<USBPort*>::iterator it;
 
 	assert(dev->Port == nullptr);
@@ -280,20 +281,21 @@ int XidGamepad::UsbXidClaimPort(XboxDeviceState* dev, int port)
 	m_UsbDev = g_USB0;
 	it = m_UsbDev->m_FreePorts.end();
 	i = 0;
+	port1 = PORT_INC(port);
 
 	for (auto usb_port : m_UsbDev->m_FreePorts) {
-		if (usb_port->Path == (std::to_string(port) + ".2")) {
+		if (usb_port->Path == (std::to_string(port1) + ".2")) {
 			it = m_UsbDev->m_FreePorts.begin() + i;
 			break;
 		}
 		i++;
 	}
 	if (it == m_UsbDev->m_FreePorts.end()) {
-		EmuLog(LOG_LEVEL::WARNING, "Port requested %d.2 not found (in use?)", port);
+		EmuLog(LOG_LEVEL::WARNING, "Requested hw port %d.2 not found (in use?)", port1);
 		return -1;
 	}
 
-	m_Port = port - 1;
+	m_Port = port;
 	dev->Port = *it;
 	(*it)->Dev = dev;
 	m_UsbDev->m_FreePorts.erase(it);
@@ -383,7 +385,7 @@ void XidGamepad::UsbXid_HandleControl(XboxDeviceState* dev, USBPacket* p,
 			// If the buffer has the correct length the full input data is transferred."
 			if (value == 0x0100) {
 				if (length <= m_XidState->in_state.bLength) {
-					if (g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->in_state, DIRECTION_IN)) {
+					if (g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->in_state, DIRECTION_IN, m_Type)) {
 						std::memcpy(data, &m_XidState->in_state, m_XidState->in_state.bLength);
 						p->ActualLength = length;
 					}
@@ -421,7 +423,7 @@ void XidGamepad::UsbXid_HandleControl(XboxDeviceState* dev, USBPacket* p,
 					assert(m_XidState->out_state.length == sizeof(m_XidState->out_state));
 
 					p->ActualLength = length;
-					g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->out_state, DIRECTION_OUT);
+					g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->out_state, DIRECTION_OUT, m_Type);
 				}
 				else {
 					p->Status = USB_RET_STALL;
@@ -503,7 +505,7 @@ void XidGamepad::UsbXid_HandleData(XboxDeviceState* dev, USBPacket* p)
 	switch (p->Pid) {
 	case USB_TOKEN_IN: {
 		if (p->Endpoint->Num == 2) {
-			if (g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->in_state, DIRECTION_IN)) {
+			if (g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->in_state, DIRECTION_IN, m_Type)) {
 				m_UsbDev->USB_PacketCopy(p, &m_XidState->in_state, m_XidState->in_state.bLength);
 			}
 			else {
@@ -519,7 +521,7 @@ void XidGamepad::UsbXid_HandleData(XboxDeviceState* dev, USBPacket* p)
 	case USB_TOKEN_OUT: {
 		if (p->Endpoint->Num == 2) {
 			m_UsbDev->USB_PacketCopy(p, &m_XidState->out_state, m_XidState->out_state.length);
-			g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->out_state, DIRECTION_OUT);
+			g_InputDeviceManager.UpdateXboxPortInput(m_Port, &m_XidState->out_state, DIRECTION_OUT, m_Type);
 		}
 		else {
 			assert(0);
