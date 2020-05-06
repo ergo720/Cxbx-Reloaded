@@ -17,6 +17,8 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/import/subhook")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/import/XbSymbolDatabase")
 
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/import/lib86cpu")
+
 # Not require since only include a header file
 #add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/import/simpleini")
 

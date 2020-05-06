@@ -22,6 +22,7 @@ include_directories(
  "${CXBXR_ROOT_DIR}/import/libtomcrypt/src/headers"
  "${CXBXR_ROOT_DIR}/import/winpcap/Include"
  "${CXBXR_ROOT_DIR}/import/SDL2/include"
+ "${CXBXR_ROOT_DIR}/import/lib86cpu/lib86cpu"
 )
 
 link_directories(
@@ -65,6 +66,7 @@ add_compile_definitions(NOMINMAX
 
 # Use inline XXHash version
 XXH_INLINE_ALL
+LLE_CPU
 )
 
 file (GLOB RESOURCES

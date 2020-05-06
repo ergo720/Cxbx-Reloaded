@@ -24,6 +24,7 @@ include_directories(
  "${CXBXR_ROOT_DIR}/import/libtommath"
  "${CXBXR_ROOT_DIR}/import/libtomcrypt/src/headers"
  "${CXBXR_ROOT_DIR}/import/winpcap/Include"
+ "${CXBXR_ROOT_DIR}/import/lib86cpu/lib86cpu"
 )
 
 link_directories(
@@ -63,6 +64,7 @@ add_compile_definitions(
  NOMINMAX
  CXBXR_EMU
  CXBXR_EMU_EXPORTS
+ LLE_CPU
 )
 
 file (GLOB RESOURCES

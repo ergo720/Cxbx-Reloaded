@@ -21,3 +21,6 @@
 [submodule "import/SDL2"]
 	path = import/SDL2
 	url = https://github.com/SDL-mirror/SDL
+[submodule "import/lib86cpu"]
+	path = import/lib86cpu
+	url = https://github.com/ergo720/lib86cpu

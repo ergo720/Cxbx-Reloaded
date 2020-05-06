@@ -16,6 +16,7 @@ STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLA
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
  add_compile_definitions(
  _CRT_SECURE_NO_WARNINGS
+ LLE_CPU
  )
  add_compile_options(
   /sdl-
