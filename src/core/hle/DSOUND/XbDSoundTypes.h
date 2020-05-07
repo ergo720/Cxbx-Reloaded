@@ -160,7 +160,7 @@ struct X_DSENVOLOPEDESC
 #define XTL_DSSCAPS_NOMERGE              0x20000000
 #define XTL_DSSCAPS_ACCURATENOTIFY       0x40000000
 
-typedef VOID(CALLBACK *LPFNXMOCALLBACK)(LPVOID pStreamContext, LPVOID pPacketContext, DWORD dwStatus);
+typedef void(CALLBACK *LPFNXMOCALLBACK)(LPVOID pStreamContext, LPVOID pPacketContext, DWORD dwStatus);
 
 // ******************************************************************
 // * X_DSSTREAMDESC

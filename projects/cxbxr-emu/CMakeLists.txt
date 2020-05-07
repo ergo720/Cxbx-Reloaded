@@ -162,6 +162,7 @@ target_link_libraries(cxbxr-emu
  subhook
  libtomcrypt
  SDL2
+ cpu
 
  ${WINS_LIB}
 )

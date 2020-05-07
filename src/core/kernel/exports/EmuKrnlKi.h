@@ -28,7 +28,7 @@
 
 #include <mutex>
 
-// Workaround to avoid collisions with the VOID provided by Windows and the one of xboxkrnl
+// Workaround to avoid collisions with the void provided by Windows and the one of xboxkrnl
 #ifdef VOID
 #undef VOID
 #endif

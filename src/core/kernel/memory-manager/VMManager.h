@@ -99,7 +99,7 @@ class VMManager : public PhysicalMemory
 		// shutdown routine
 		void Shutdown();
 		// initializes the memory manager to the default configuration
-		void Initialize(unsigned int SystemType, int BootFlags, blocks_reserved_t blocks_reserved);
+		void Initialize(unsigned int SystemType, int BootFlags);
 		// retrieves memory statistics
 		void MemoryStatistics(xboxkrnl::PMM_STATISTICS memory_statistics);
 		// allocates memory in the user region
@@ -175,7 +175,7 @@ class VMManager : public PhysicalMemory
 		// clears all memory region structs
 		void DestroyMemoryRegions();
 		// map a memory block with the supplied allocation routine
-		VAddr MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, DWORD Permissions, bool b64Blocks, VAddr HighestAddress = 0);
+		VAddr MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, DWORD Permissions, uint32_t Alignment, VAddr HighestAddress = 0);
 		// helper function which allocates user memory with VirtualAlloc
 		VAddr MapHostMemory(VAddr StartingAddr, size_t Size, size_t VmaEnd, DWORD Permissions);
 		// constructs a vma
@@ -196,8 +196,6 @@ class VMManager : public PhysicalMemory
 		VMAIter MergeAdjacentVMA(VMAIter vma_handle, MemoryRegionType Type);
 		// checks if the specified range conflicts with another non-free vma
 		VMAIter CheckConflictingVMA(VAddr addr, size_t Size, MemoryRegionType Type, bool* bOverflow);
-		// changes the access permissions of a block of memory
-		void UpdateMemoryPermissions(VAddr addr, size_t Size, DWORD Perms);
 		// restores persistent memory
 		void RestorePersistentMemory();
 		// acquires the critical section

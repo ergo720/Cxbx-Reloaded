@@ -79,7 +79,7 @@ typedef struct _XBOX_PTE
 /* PTE as used by the memory manager */
 typedef union _MMPTE
 {
-	ULONG Default;
+	uint32_t Default;
 	XBOX_PTE Hardware;
 }MMPTE, *PMMPTE;
 
@@ -87,19 +87,19 @@ typedef union _MMPTE
 /* PFN entry used by the memory manager */
 typedef union _XBOX_PFN
 {
-	ULONG Default;
+	uint32_t Default;
 	struct {
-		ULONG LockCount : 16;  // Set to prevent page relocation. Used by MmLockUnlockPhysicalPage and others
-		ULONG Busy : 1;        // If set, PFN is in use
-		ULONG Unused : 1;
-		ULONG PteIndex : 10;   // Offset in the PT that maps the pte (it seems to be needed only for page relocations)
-		ULONG BusyType : 4;    // What the page is used for
+		uint32_t LockCount : 16;  // Set to prevent page relocation. Used by MmLockUnlockPhysicalPage and others
+		uint32_t Busy : 1;        // If set, PFN is in use
+		uint32_t Unused : 1;
+		uint32_t PteIndex : 10;   // Offset in the PT that maps the pte (it seems to be needed only for page relocations)
+		uint32_t BusyType : 4;    // What the page is used for
 	} Busy;
 	struct {
-		ULONG LockCount : 16;  // Set to prevent page relocation. Used by MmLockUnlockPhysicalPage and others
-		ULONG Busy : 1;        // If set, PFN is in use
-		ULONG PtesUsed : 11;   // Number of used pte's in the PT pointed by the pde
-		ULONG BusyType : 4;    // What the page is used for (must be VirtualPageTableType or SystemPageTableType)
+		uint32_t LockCount : 16;  // Set to prevent page relocation. Used by MmLockUnlockPhysicalPage and others
+		uint32_t Busy : 1;        // If set, PFN is in use
+		uint32_t PtesUsed : 11;   // Number of used pte's in the PT pointed by the pde
+		uint32_t BusyType : 4;    // What the page is used for (must be VirtualPageTableType or SystemPageTableType)
 	} PTPageFrame;
 }XBOX_PFN, *PXBOX_PFN;
 
@@ -159,13 +159,13 @@ typedef enum _MmLayout
 
 
 /* Various macros to manipulate PDE/PTE/PFN */
-#define GetPdeAddress(Va) ((PMMPTE)(((((ULONG)(Va)) >> 22) << 2) + PAGE_DIRECTORY_BASE)) // (Va/4M) * 4 + PDE_BASE
-#define GetPteAddress(Va) ((PMMPTE)(((((ULONG)(Va)) >> 12) << 2) + PAGE_TABLES_BASE))    // (Va/4K) * 4 + PTE_BASE
-#define GetVAddrMappedByPte(Pte) ((VAddr)((ULONG_PTR)(Pte) << 10))
+#define GetPdeAddress(Va) ((VAddr)(((((uint32_t)(Va)) >> 22) << 2) + PAGE_DIRECTORY_BASE)) // (Va/4M) * 4 + PDE_BASE
+#define GetPteAddress(Va) ((VAddr)(((((uint32_t)(Va)) >> 12) << 2) + PAGE_TABLES_BASE))    // (Va/4K) * 4 + PTE_BASE
+#define GetVAddrMappedByPte(Pte) ((VAddr)((uint32_t)(Pte) << 10))
 #define GetPteOffset(Va) ((((ULONG)(Va)) << 10) >> 22)
-#define IsPteOnPdeBoundary(Pte) (((ULONG_PTR)(Pte) & (PAGE_SIZE - 1)) == 0)
-#define WRITE_ZERO_PTE(pPte) ((pPte)->Default = 0)
-#define WRITE_PTE(pPte, Pte) (*(pPte) = Pte)
+#define IsPteOnPdeBoundary(Pte) (((uint32_t)(Pte) & (PAGE_SIZE - 1)) == 0)
+#define WRITE_ZERO_PTE(pPte) mem_write_32(g_CPU, pPte, 0)
+#define WRITE_PTE(pPte, Pte) mem_write_32(g_CPU, pPte, Pte);
 #define DISABLE_CACHING(Pte) ((Pte).Hardware.CacheDisable = 1); ((Pte).Hardware.WriteThrough = 1)
 #define SET_WRITE_COMBINE(Pte) ((Pte).Hardware.CacheDisable = 0); ((Pte).Hardware.WriteThrough = 1)
 #define ValidKernelPteBits (PTE_VALID_MASK | PTE_WRITE_MASK | PTE_DIRTY_MASK | PTE_ACCESS_MASK) // 0x63
@@ -231,11 +231,11 @@ class PhysicalMemory
 		// set up the page directory
 		void InitializePageDirectory();
 		// write a contiguous range of pfn's
-		void WritePfn(PFN pfn_start, PFN pfn_end, PMMPTE pPte, PageType BusyType, bool bZero = false);
+		void WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType BusyType, bool bZero = false);
 		// write a contiguous range of pte's
-		void WritePte(PMMPTE pPteStart, PMMPTE pPteEnd, MMPTE Pte, PFN pfn, bool bZero = false);
+		void WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn, bool bZero = false);
 		// retrieves the pfn entry which maps a PT
-		PXBOX_PFN GetPfnOfPT(PMMPTE pPte);
+		VAddr GetPfnOfPT(VAddr pPte);
 		// commit a contiguous number of pages
 		bool RemoveFree(PFN_COUNT NumberOfPages, PFN* result, PFN_COUNT PfnAlignment, PFN start, PFN end);
 		// release a contiguous number of pages
@@ -246,10 +246,6 @@ class PhysicalMemory
 		bool ConvertXboxToPtePermissions(DWORD perms, PMMPTE pPte);
 		// convert from pte permissions to the corresponding Xbox protection code
 		DWORD ConvertPteToXboxPermissions(ULONG PteMask);
-		// convert from Xbox to Windows permissions
-		DWORD ConvertXboxToWinPermissions(DWORD Perms);
-		// add execute rights if the permission mask doesn't include it
-		DWORD PatchXboxPermissions(DWORD Perms);
 		// commit page tables (if necessary)
 		bool AllocatePT(size_t Size, VAddr addr);
 		// deallocate page tables (if possible)

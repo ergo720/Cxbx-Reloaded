@@ -186,6 +186,7 @@ target_link_libraries(cxbx
  subhook
  libtomcrypt
  SDL2
+ cpu
 
  ${WINS_LIB}
 )

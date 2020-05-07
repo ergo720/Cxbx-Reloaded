@@ -63,6 +63,8 @@ typedef enum { // TODO : Move to it's own file
 	XCalibur
 } TVEncoder;
 
+// forward declare
+struct cpu_t;
 extern PCIBus* g_PCIBus;
 extern SMBus* g_SMBus;
 extern MCPXDevice* g_MCPX;
@@ -71,5 +73,6 @@ extern EEPROMDevice* g_EEPROM;
 extern NVNetDevice* g_NVNet;
 extern NV2ADevice* g_NV2A;
 extern USBDevice* g_USB0;
+extern cpu_t *g_CPU;
 
 extern void InitXboxHardware(HardwareModel hardwareModel);

@@ -138,6 +138,7 @@ void FreeLastErrorString(LPTSTR Error)
 
 DWORD CALLBACK rawMain()
 {
+#ifndef LLE_CPU
 	(void)virtual_memory_placeholder; // prevent optimization removing this data
 
 	// First detect if we are running on WoW64, if not, prevent Cxbx-Reloaded from starting
@@ -179,7 +180,7 @@ DWORD CALLBACK rawMain()
 		OutputMessage("None of system types' required address range(s) could be reserved!\n");
 		return ERROR_NOT_ENOUGH_MEMORY;
 	}
-
+#endif
 	// Only after the required memory ranges are reserved, load our emulation DLL
 	HMODULE hEmulationDLL = LoadLibrary(TEXT(EMULATION_DLL));
 	if (!hEmulationDLL) {
@@ -203,6 +204,8 @@ DWORD CALLBACK rawMain()
 
 	// Call the main emulation function in our DLL, passing in the results
 	// of the address range reservations
+	unsigned int system = SYSTEM_ALL;
+	static blocks_reserved_t blocks_reserved;
 	pfnEmulate(system, blocks_reserved);
 
 	// Once emulation actually started, execution may never return here

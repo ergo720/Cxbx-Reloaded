@@ -30,6 +30,7 @@
 #include "common/ReserveAddressRanges.h"
 #include "common\xbe\Xbe.h"
 #include "Logging.h"
+#include "..\..\..\devices\Xbox.h"
 
 #undef FIELD_OFFSET     // prevent macro redefinition warnings
 #include <windows.h>

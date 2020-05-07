@@ -259,7 +259,7 @@ void SetupXboxDeviceTypes()
 // ******************************************************************
 // * patch: XInitDevices
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(XInitDevices)
+void WINAPI XTL::EMUPATCH(XInitDevices)
 (
     DWORD					dwPreallocTypeCount,
 	PXDEVICE_PREALLOC_TYPE	PreallocTypes
@@ -458,7 +458,7 @@ HANDLE WINAPI XTL::EMUPATCH(XInputOpen)
 // ******************************************************************
 // * patch: XInputClose
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(XInputClose)
+void WINAPI XTL::EMUPATCH(XInputClose)
 (
     IN HANDLE hDevice
 )
@@ -901,7 +901,7 @@ BOOL WINAPI XTL::EMUPATCH(GetExitCodeThread)
 // ******************************************************************
 // * patch: XapiThreadStartup
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(XapiThreadStartup)
+void WINAPI XTL::EMUPATCH(XapiThreadStartup)
 (
     DWORD dwDummy1,
     DWORD dwDummy2
@@ -934,7 +934,7 @@ VOID WINAPI XTL::EMUPATCH(XapiThreadStartup)
 // ******************************************************************
 // * patch: XRegisterThreadNotifyRoutine
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(XRegisterThreadNotifyRoutine)
+void WINAPI XTL::EMUPATCH(XRegisterThreadNotifyRoutine)
 (
     PXTHREAD_NOTIFICATION   pThreadNotification,
     BOOL                    fRegister
@@ -1028,7 +1028,7 @@ LPVOID WINAPI XTL::EMUPATCH(CreateFiber)
 // ******************************************************************
 // * patch: DeleteFiber
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(DeleteFiber)
+void WINAPI XTL::EMUPATCH(DeleteFiber)
 (
 	LPVOID					lpFiber
 )
@@ -1042,7 +1042,7 @@ VOID WINAPI XTL::EMUPATCH(DeleteFiber)
 // ******************************************************************
 // * patch: SwitchToFiber
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(SwitchToFiber)
+void WINAPI XTL::EMUPATCH(SwitchToFiber)
 (
 	LPVOID lpFiber 
 )
@@ -1265,7 +1265,7 @@ DWORD WINAPI XTL::EMUPATCH(XGetLaunchInfo)
 // ******************************************************************
 // * patch: XSetProcessQuantumLength
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(XSetProcessQuantumLength)
+void WINAPI XTL::EMUPATCH(XSetProcessQuantumLength)
 (
     DWORD dwMilliseconds
 )
@@ -1348,7 +1348,7 @@ MMRESULT WINAPI XTL::EMUPATCH(timeKillEvent)
 // ******************************************************************
 // * patch: RaiseException
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(RaiseException)
+void WINAPI XTL::EMUPATCH(RaiseException)
 (
 	DWORD			dwExceptionCode,       // exception code
 	DWORD			dwExceptionFlags,      // continuable exception flag
@@ -1458,7 +1458,7 @@ DWORD WINAPI XTL::EMUPATCH(XMountMURootA)
 // ******************************************************************
 // * patch: OutputDebugStringA
 // ******************************************************************
-VOID WINAPI XTL::EMUPATCH(OutputDebugStringA)
+void WINAPI XTL::EMUPATCH(OutputDebugStringA)
 (
 	IN LPCSTR lpOutputString
 )

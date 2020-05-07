@@ -33,7 +33,7 @@ namespace xboxkrnl
 {
     #include <xboxkrnl/xboxkrnl.h>
 };
-
+typedef void VOID;
 #include "gui/resource/ResCxbx.h"
 #include "core\kernel\init\CxbxKrnl.h"
 #include "common\xbdm\CxbxXbdm.h" // For Cxbx_LibXbdmThunkTable
@@ -69,6 +69,11 @@ namespace xboxkrnl
 #include "common\crypto\EmuSha.h" // For the SHA1 functions
 #include "Timer.h" // For Timer_Init
 #include "common\input\InputManager.h" // For the InputDeviceManager
+
+#ifdef VOID
+#undef VOID
+#endif
+#include "lib86cpu.h"
 
 /*! thread local storage */
 Xbe::TLS *CxbxKrnl_TLS = NULL;
@@ -867,7 +872,7 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 			g_bIsWine = true;
 		}
 	}
-
+#ifndef LLE_CPU
 	// Now we got the arguments, start by initializing the Xbox memory map :
 	// PrepareXBoxMemoryMap()
 	{
@@ -941,7 +946,7 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		// Restore enough of the executable image headers to keep WinAPI's working :
 		RestoreExeImageHeader();
 	}
-
+#endif
 	// Load Per-Xbe Keys from the Cxbx-Reloaded AppData directory
 	LoadXboxKeys(szFolder_CxbxReloadedData);
 
@@ -1032,15 +1037,19 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 
 		EmuLogInit(LOG_LEVEL::INFO, "Host's compatible system types: %2X", reserved_systems);
 		unsigned int emulate_system = 0;
+		size_t ramsize;
 		// Set reserved_systems which system we will about to emulate.
 		if (isSystemFlagSupport(reserved_systems, SYSTEM_CHIHIRO) && xbeType == XbeType::xtChihiro) {
 			emulate_system = SYSTEM_CHIHIRO;
+			ramsize = CHIHIRO_MEMORY_SIZE;
 		}
 		else if (isSystemFlagSupport(reserved_systems, SYSTEM_DEVKIT) && xbeType == XbeType::xtDebug) {
 			emulate_system = SYSTEM_DEVKIT;
+			ramsize = CHIHIRO_MEMORY_SIZE;
 		}
 		else if (isSystemFlagSupport(reserved_systems, SYSTEM_XBOX) && xbeType == XbeType::xtRetail) {
 			emulate_system = SYSTEM_XBOX;
+			ramsize = XBOX_MEMORY_SIZE;
 		}
 		// If none of system type requested to emulate isn't supported on host's end. Then enforce failure.
 		else {
@@ -1079,6 +1088,34 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		}
 #endif
 
+		if (!LIB86CPU_CHECK_SUCCESS(cpu_new(ramsize, g_CPU))) {
+			CxbxKrnlCleanup("Failed to initialize lib86cpu!\n");
+		}
+
+		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, 0, ramsize, 1))) {
+			CxbxKrnlCleanup("Failed to initialize ram region!\n");
+		}
+
+		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, CONTIGUOUS_MEMORY_BASE, ramsize, 1))) {
+			CxbxKrnlCleanup("Failed to initialize contiguous region!\n");
+		}
+
+		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, TILED_MEMORY_BASE, TILED_MEMORY_SIZE, 1))) {
+			CxbxKrnlCleanup("Failed to initialize tiled region!\n");
+		}
+
+		// Activate paging, protection, write-protect and the native numeric error support
+		g_CPU->cpu_ctx.regs.cr0 = (1 << 31) | (1 << 16) | (1 << 5) | 1;
+
+		// Setup cr3 to point to the page directory
+		g_CPU->cpu_ctx.regs.cr3 = PAGE_DIRECTORY_PHYSICAL_ADDRESS;
+
+		// Activate PSE, OSFXSR and OSXMMEXCPT support
+		g_CPU->cpu_ctx.regs.cr4 = (1 << 10) | (1 << 9) | (1 << 4);
+
+		cpu_sync_state(g_CPU);
+
+#ifndef LLE_CPU
 #ifndef CXBXR_EMU
 		// Only for GUI executable with emulation code.
 		blocks_reserved_t blocks_reserved_gui = { 0 };
@@ -1094,6 +1131,9 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		// Initialize the memory manager
 		g_VMManager.Initialize(emulate_system, BootFlags, blocks_reserved);
 #endif
+#endif
+		// Initialize the memory manager
+		g_VMManager.Initialize(emulate_system, BootFlags);
 
 		// Commit the memory used by the xbe header
 		size_t HeaderSize = CxbxKrnl_Xbe->m_Header.dwSizeofHeaders;
@@ -1218,7 +1258,7 @@ void LoadXboxKeys(std::string path)
 	EmuLog(LOG_LEVEL::WARNING, "Failed to load Keys.bin. Cxbx-Reloaded will be unable to read Save Data from a real Xbox");
 }
 
-__declspec(noreturn) void CxbxKrnlInit
+[[noreturn]] void CxbxKrnlInit
 (
 	void                   *pTLSData,
 	Xbe::TLS               *pTLS,

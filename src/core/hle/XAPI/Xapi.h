@@ -74,10 +74,7 @@ typedef LONG               *LONG_PTR;
 typedef ULONG              *ULONG_PTR;
 typedef INT_PTR            *PINT_PTR;
 
-#ifndef VOID
-	#define VOID void
-#endif
-typedef VOID               *PVOID, *LPVOID;
+typedef void               *PVOID, *LPVOID;
 typedef void               *HANDLE;
 typedef HANDLE             *PHANDLE;
 
@@ -324,7 +321,7 @@ RTL_HEAP_PARAMETERS;
 // ******************************************************************
 // * XTHREAD_NOTIFY_PROC
 // ******************************************************************
-typedef VOID (WINAPI *XTHREAD_NOTIFY_PROC)(BOOL fCreate);
+typedef void (WINAPI *XTHREAD_NOTIFY_PROC)(BOOL fCreate);
 
 // ******************************************************************
 // * XTHREAD_NOTIFICATION
@@ -402,7 +399,7 @@ BOOL WINAPI EMUPATCH(XMountUtilityDrive)
 // ******************************************************************
 // * patch: XInitDevices
 // ******************************************************************
-VOID WINAPI EMUPATCH(XInitDevices)
+void WINAPI EMUPATCH(XInitDevices)
 (
     DWORD					dwPreallocTypeCount,
 	PXDEVICE_PREALLOC_TYPE	PreallocTypes
@@ -440,7 +437,7 @@ HANDLE WINAPI EMUPATCH(XInputOpen)
 // ******************************************************************
 // * patch: XInputClose
 // ******************************************************************
-VOID WINAPI EMUPATCH(XInputClose)
+void WINAPI EMUPATCH(XInputClose)
 (
     IN HANDLE hDevice
 );
@@ -537,7 +534,7 @@ BOOL WINAPI EMUPATCH(GetExitCodeThread)
 // ******************************************************************
 // * patch: XapiThreadStartup
 // ******************************************************************
-VOID WINAPI EMUPATCH(XapiThreadStartup)
+void WINAPI EMUPATCH(XapiThreadStartup)
 (
     DWORD dwDummy1,
     DWORD dwDummy2
@@ -553,7 +550,7 @@ NTSTATUS CDECL XapiSetupPerTitleDriveLetters(DWORD dwTitleId, LPCWSTR wszTitleNa
 // ******************************************************************
 // * patch: XRegisterThreadNotifyRoutine
 // ******************************************************************
-VOID WINAPI EMUPATCH(XRegisterThreadNotifyRoutine)
+void WINAPI EMUPATCH(XRegisterThreadNotifyRoutine)
 (
     PXTHREAD_NOTIFICATION   pThreadNotification,
     BOOL                    fRegister
@@ -572,7 +569,7 @@ LPVOID WINAPI EMUPATCH(CreateFiber)
 // ******************************************************************
 // * patch: DeleteFiber
 // ******************************************************************
-VOID WINAPI EMUPATCH(DeleteFiber)
+void WINAPI EMUPATCH(DeleteFiber)
 (
 	LPVOID lpFiber
 );
@@ -580,7 +577,7 @@ VOID WINAPI EMUPATCH(DeleteFiber)
 // ******************************************************************
 // * patch: SwitchToFiber
 // ******************************************************************
-VOID WINAPI EMUPATCH(SwitchToFiber)
+void WINAPI EMUPATCH(SwitchToFiber)
 (
 	LPVOID lpFiber 
 );
@@ -596,7 +593,7 @@ LPVOID WINAPI EMUPATCH(ConvertThreadToFiber)
 // ******************************************************************
 // * patch: XapiFiberStartup
 // ******************************************************************
-VOID WINAPI EMUPATCH(XapiFiberStartup)(DWORD dwDummy);
+void WINAPI EMUPATCH(XapiFiberStartup)(DWORD dwDummy);
 
 // ******************************************************************
 // * patch: QueryPerformanceCounter
@@ -652,7 +649,7 @@ DWORD WINAPI EMUPATCH(XGetLaunchInfo)
 // ******************************************************************
 // * patch: XSetProcessQuantumLength
 // ******************************************************************
-VOID WINAPI EMUPATCH(XSetProcessQuantumLength)
+void WINAPI EMUPATCH(XSetProcessQuantumLength)
 (
     DWORD dwMilliseconds
 );
@@ -691,7 +688,7 @@ MMRESULT WINAPI EMUPATCH(timeKillEvent)
 // ******************************************************************
 // * patch: RaiseException
 // ******************************************************************
-VOID WINAPI EMUPATCH(RaiseException)
+void WINAPI EMUPATCH(RaiseException)
 (
 	DWORD			dwExceptionCode,       // exception code
 	DWORD			dwExceptionFlags,      // continuable exception flag
@@ -798,7 +795,7 @@ BOOL WINAPI EMUPATCH(WriteFileEx)
 // ******************************************************************
 // * patch: OutputDebugStringA
 // ******************************************************************
-VOID WINAPI EMUPATCH(OutputDebugStringA)
+void WINAPI EMUPATCH(OutputDebugStringA)
 (
 	IN LPCSTR lpOutputString
 );

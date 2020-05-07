@@ -127,13 +127,13 @@ CommandLineToArgvA(
 DWORD WINAPI Emulate(unsigned int reserved_systems, blocks_reserved_t blocks_reserved)
 {
 	FUNC_EXPORTS
-
+#ifndef LLE_CPU
 	/*! Verify our host executable, cxbxr-ldr.exe, is loaded to base address 0x00010000 */
 	if (!VerifyBaseAddr()) {
 		PopupError(nullptr, "cxbx-ldr.exe was not loaded to base address 0x00010000 (which is a requirement for Xbox emulation)");
 		return EXIT_FAILURE;
 	}
-
+#endif
 	LPSTR CommandLine = GetCommandLine();
 	if (!CommandLine) {
 		PopupError(nullptr, "Couldn't retrieve command line!");
@@ -171,13 +171,13 @@ DWORD WINAPI Emulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		EmuShared::Cleanup();
 		return EXIT_FAILURE;
 	}
-
+#ifndef LLE_CPU
 	if (!reserved_systems) {
 		PopupError(nullptr, "Unable to preserve any system's memory ranges!");
 		EmuShared::Cleanup();
 		return EXIT_FAILURE;
 	}
-
+#endif
 	CxbxKrnlEmulate(reserved_systems, blocks_reserved);
 
 	/*! cleanup shared memory */

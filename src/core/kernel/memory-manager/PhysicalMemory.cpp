@@ -32,6 +32,11 @@
 #include "Logging.h"
 #include "core\kernel\exports\EmuKrnl.h" // For InitializeListHead(), etc.
 #include <assert.h>
+#ifdef VOID
+#undef VOID
+#endif
+#include "lib86cpu.h"
+
 
 // See the links below for the details about the kernel structure LIST_ENTRY and the related functions
 // https://www.codeproject.com/Articles/800404/Understanding-LIST-ENTRY-Lists-and-Its-Importance
@@ -45,39 +50,38 @@ inline FreeBlock* ListEntryToFreeBlock(xboxkrnl::PLIST_ENTRY pListEntry)
 
 void PhysicalMemory::InitializePageDirectory()
 {
-	PMMPTE pPde;
-	PMMPTE pPde_end;
+	PAddr pPde;
 	MMPTE TempPte;
 
+	// Clear the page directory
+	std::memset(&g_CPU->cpu_ctx.ram[PAGE_DIRECTORY_PHYSICAL_ADDRESS], 0, PAGE_SIZE);
+
+	// Write the pde of the page directory
+	TempPte.Default = ValidKernelPteBits;
+	TempPte.Hardware.PFN = PAGE_DIRECTORY_PHYSICAL_ADDRESS >> PAGE_SHIFT;
+	std::memcpy(&g_CPU->cpu_ctx.ram[PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xC00], &TempPte.Default, 4);
 
 	// Write the pde's of the WC (tiled) memory - no page tables
-	TempPte.Default = ValidKernelPteBits;
-	TempPte.Hardware.LargePage = 1;
+	TempPte.Default = ValidKernelPteBits | PTE_LARGE_PAGE_MASK;
 	TempPte.Hardware.PFN = XBOX_WRITE_COMBINED_BASE >> PAGE_SHIFT;
 	SET_WRITE_COMBINE(TempPte);
-	pPde_end = GetPdeAddress(XBOX_WRITE_COMBINED_END);
-	for (pPde = GetPdeAddress(XBOX_WRITE_COMBINED_BASE); pPde <= pPde_end; ++pPde)
-	{
-		WRITE_PTE(pPde, TempPte);
+	for (pPde = PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF00; pPde < PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF80; pPde += 4) {
+		std::memcpy(&g_CPU->cpu_ctx.ram[pPde], &TempPte.Default, 4);
 		TempPte.Default += LARGE_PAGE_SIZE; // increase PFN
 	}
-
 
 	// Write the pde's of the UC memory region - no page tables
 	TempPte.Hardware.PFN = XBOX_UNCACHED_BASE >> PAGE_SHIFT;
 	DISABLE_CACHING(TempPte);
-	pPde_end = GetPdeAddress(XBOX_UNCACHED_END - 1);
-	for (pPde = GetPdeAddress(XBOX_UNCACHED_BASE); pPde <= pPde_end; ++pPde)
-	{
-		WRITE_PTE(pPde, TempPte);
+	for (pPde = PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF80; pPde < PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xFFC; pPde += 4) {
+		std::memcpy(&g_CPU->cpu_ctx.ram[pPde], &TempPte.Default, 4);
 		TempPte.Default += LARGE_PAGE_SIZE; // increase PFN
 	}
-
-	// TODO: map memory for the file system cache?
 }
 
-void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, PMMPTE pPte, PageType BusyType, bool bZero)
+void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType BusyType, bool bZero)
 {
+#if 0
 	XBOX_PFN TempPF;
 
 	if (bZero)
@@ -113,51 +117,64 @@ void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, PMMPTE pPte, PageType 
 
 			m_PagesByUsage[BusyType]++;
 			pfn_start++;
-			pPte++;
+			pPte += 4;
 		}
 	}
+#endif
 }
 
-void PhysicalMemory::WritePte(PMMPTE pPteStart, PMMPTE pPteEnd, MMPTE Pte, PFN pfn, bool bZero)
+void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn, bool bZero)
 {
 	// This function is intended to write pte's, not pde's. To write those, use (De)AllocatePT which will perform
 	// all the necessary housekeeping. Also, the pde's mapping these pte's should have already being commited or else
 	// GetPfnOfPT will assert
 
-	PMMPTE PointerPte = pPteStart;
-	PXBOX_PFN PTpfn;
+	VAddr PointerPte = pPteStart;
+	VAddr pPTpfn;
+	MMPTE TempPte;
+	XBOX_PFN PTpfn;
 
 	if (bZero)
 	{
 		while (PointerPte <= pPteEnd)
 		{
+#if 0
 			if (PointerPte == pPteStart || IsPteOnPdeBoundary(PointerPte))
 			{
-				PTpfn = GetPfnOfPT(PointerPte);
+				pPTpfn = GetPfnOfPT(PointerPte);
+				mem_read_32(g_CPU, pPTpfn, PTpfn.Default);
 			}
-			if (PointerPte->Default != 0)
+#endif
+			mem_read_32(g_CPU, PointerPte, TempPte.Default);
+			if (TempPte.Default != 0)
 			{
 				WRITE_ZERO_PTE(PointerPte);
-				PTpfn->PTPageFrame.PtesUsed--;
+				//PTpfn.PTPageFrame.PtesUsed--;
+				//mem_write_32(g_CPU, pPTpfn, PTpfn.Default);
 			}
-			PointerPte++;
+			PointerPte += 4;
 		}
 	}
 	else
 	{
 		while (PointerPte <= pPteEnd)
 		{
+#if 0
 			if (PointerPte == pPteStart || IsPteOnPdeBoundary(PointerPte))
 			{
-				PTpfn = GetPfnOfPT(PointerPte);
+				pPTpfn = GetPfnOfPT(PointerPte);
+				mem_read_32(g_CPU, pPTpfn, PTpfn.Default);
 			}
-			if (PointerPte->Default == 0)
+#endif
+			mem_read_32(g_CPU, PointerPte, TempPte.Default);
+			if (TempPte.Default == 0)
 			{
 				Pte.Hardware.PFN = pfn;
-				WRITE_PTE(PointerPte, Pte);
-				PTpfn->PTPageFrame.PtesUsed++;
+				WRITE_PTE(PointerPte, Pte.Default);
+				//PTpfn.PTPageFrame.PtesUsed++;
+				//mem_write_32(g_CPU, pPTpfn, PTpfn.Default);
 			}
-			PointerPte++;
+			PointerPte += 4;
 			pfn++;
 		}
 	}
@@ -520,132 +537,10 @@ DWORD PhysicalMemory::ConvertPteToXboxPermissions(ULONG PteMask)
 	return Protect;
 }
 
-DWORD PhysicalMemory::PatchXboxPermissions(DWORD Perms)
-{
-	// Usage notes: this routine expects the permissions to be already sanitized by ConvertXboxToSystemPtePermissions or
-	// similar. If not, it can produce incorrect results
-
-	// ergo720: this checks if the specified Xbox permission mask has the execute flag enabled. If not, it adds it. This is
-	// necessary because, afaik, the Xbox grants execute rights to all allocations, even if PAGE_EXECUTE was not specified
-
-	if ((Perms >> 4) & 0xF)
-	{
-		// All high nibble flags grant execute rights, nothing to do
-
-		return Perms;
-	}
-
-	if (Perms & XBOX_PAGE_NOACCESS)
-	{
-		// XBOX_PAGE_NOACCESS disables all access, nothing to do
-
-		return Perms;
-	}
-
-	switch (Perms & (XBOX_PAGE_READONLY | XBOX_PAGE_READWRITE))
-	{
-		case 0:
-		{
-			// One of XBOX_PAGE_READONLY or XBOX_PAGE_READWRITE must be specified
-
-			EmuLog(LOG_LEVEL::DEBUG, "%s: Memory permissions bug detected", __func__);
-			return XBOX_PAGE_EXECUTE_READWRITE;
-		}
-
-		case XBOX_PAGE_READONLY:
-		{
-			Perms &= (~XBOX_PAGE_READONLY);
-			return Perms | XBOX_PAGE_EXECUTE_READ;
-		}
-
-		case XBOX_PAGE_READWRITE:
-		{
-			Perms &= (~XBOX_PAGE_READWRITE);
-			return Perms | XBOX_PAGE_EXECUTE_READWRITE;
-		}
-
-		default:
-		{
-			// If we reach here it means that both XBOX_PAGE_READONLY and XBOX_PAGE_READWRITE were specified, and so the
-			// input is probably invalid
-
-			EmuLog(LOG_LEVEL::DEBUG, "%s: Memory permissions bug detected", __func__);
-			return XBOX_PAGE_EXECUTE_READWRITE;
-		}
-	}
-}
-
-DWORD PhysicalMemory::ConvertXboxToWinPermissions(DWORD Perms)
-{
-	// This function assumes that the supplied permissions have been sanitized already
-
-	DWORD Mask = 0;
-
-	if (Perms & XBOX_PAGE_NOACCESS)
-	{
-		// PAGE_NOACCESS cannot be specified with anything else
-
-		return PAGE_NOACCESS;
-	}
-
-	DWORD LowNibble = Perms & 0xF;
-	DWORD HighNibble = (Perms >> 4) & 0xF;
-
-	if (HighNibble)
-	{
-		if (HighNibble == 1) { Mask |= PAGE_EXECUTE; }
-		else if (HighNibble == 2) { Mask |= PAGE_EXECUTE_READ; }
-		else { Mask |= PAGE_EXECUTE_READWRITE; }
-	}
-
-	if (LowNibble)
-	{
-		if (LowNibble == 2) { Mask |= PAGE_READONLY; }
-		else { Mask |= PAGE_READWRITE; }
-	}
-
-	// Even though PAGE_NOCACHE and PAGE_WRITECOMBINE are unsupported on shared memory, that's a limitation on our side,
-	// this function still adds them if they are present
-
-	switch (Perms & (XBOX_PAGE_GUARD | XBOX_PAGE_NOCACHE | XBOX_PAGE_WRITECOMBINE))
-	{
-		case 0:
-			break;
-
-		case XBOX_PAGE_GUARD:
-		{
-			Mask |= PAGE_GUARD;
-			break;
-		}
-
-		case XBOX_PAGE_NOCACHE:
-		{
-			Mask |= PAGE_NOCACHE;
-			break;
-		}
-
-		case XBOX_PAGE_WRITECOMBINE:
-		{
-			Mask |= PAGE_WRITECOMBINE;
-			break;
-		}
-
-		default:
-		{
-			// If we reach here it means that more than one permission modifier was specified, and so the input is
-			// probably invalid
-
-			EmuLog(LOG_LEVEL::DEBUG, "%s: Memory permissions bug detected", __func__);
-			return PAGE_EXECUTE_READWRITE;
-		}
-	}
-	return Mask;
-}
-
 bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 {
 	PFN pfn;
-	PMMPTE pPde;
+	VAddr pPde;
 	MMPTE TempPte;
 	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, Size);
 	PFN_COUNT PTtoCommit = 0;
@@ -657,7 +552,8 @@ bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 
 	for (unsigned int i = 0; i < PdeNumber; ++i)
 	{
-		if (GetPdeAddress(StartingAddr)->Hardware.Valid == 0)
+		mem_read_32(g_CPU, GetPdeAddress(StartingAddr), TempPte.Default);
+		if (TempPte.Hardware.Valid == 0)
 		{
 			PTtoCommit++;
 		}
@@ -686,7 +582,8 @@ bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 	for (unsigned int i = 0; i < PdeNumber; ++i)
 	{
 		pPde = GetPdeAddress(StartingAddr);
-		if (pPde->Hardware.Valid == 0)
+		mem_read_32(g_CPU, pPde, TempPte.Default);
+		if (TempPte.Hardware.Valid == 0)
 		{
 			// We grab one page at a time to avoid fragmentation issues. The maximum allowed page is m_MaxContiguousPfn
 			// to keep AllocatePT from stealing nv2a/pfn pages during initialization
@@ -694,19 +591,21 @@ bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 			RemoveFree(1, &pfn, 0, 0, m_MaxContiguousPfn);
 			TempPte.Default = ValidKernelPdeBits;
 			TempPte.Hardware.PFN = pfn;
-			WRITE_PTE(pPde, TempPte);
-			WritePfn(pfn, pfn, pPde, BusyType);
+			WRITE_PTE(pPde, TempPte.Default);
+			std::memset(&g_CPU->cpu_ctx.ram[pfn << PAGE_SHIFT], 0, PAGE_SIZE);
+			//WritePfn(pfn, pfn, pPde, BusyType);
 		}
 		StartingAddr += LARGE_PAGE_SIZE;
 	}
 
+	m_PagesByUsage[BusyType] += PTtoCommit;
 	return true;
 }
 
 void PhysicalMemory::DeallocatePT(size_t Size, VAddr addr)
 {
-	PMMPTE pPde;
-	PXBOX_PFN PTpfn;
+	VAddr pPde;
+	VAddr PTpfn;
 	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, Size);
 	VAddr StartingAddr = addr;
 
@@ -717,11 +616,15 @@ void PhysicalMemory::DeallocatePT(size_t Size, VAddr addr)
 	{
 		pPde = GetPdeAddress(StartingAddr);
 		PTpfn = GetPfnOfPT(GetPteAddress(StartingAddr));
+		XBOX_PFN Pfn;
+		mem_read_32(g_CPU, PTpfn, Pfn.Default);
 
-		if (PTpfn->PTPageFrame.PtesUsed == 0)
+		if (Pfn.PTPageFrame.PtesUsed == 0)
 		{
-			InsertFree(pPde->Hardware.PFN, pPde->Hardware.PFN);
-			WritePfn(pPde->Hardware.PFN, pPde->Hardware.PFN, pPde, (PageType)PTpfn->PTPageFrame.BusyType, true);
+			MMPTE Pde;
+			mem_read_32(g_CPU, pPde, Pde.Default);
+			InsertFree(Pde.Hardware.PFN, Pde.Hardware.PFN);
+			WritePfn(Pde.Hardware.PFN, Pde.Hardware.PFN, pPde, (PageType)Pfn.PTPageFrame.BusyType, true);
 			WRITE_ZERO_PTE(pPde);
 		}
 		StartingAddr += LARGE_PAGE_SIZE;
@@ -738,21 +641,23 @@ bool PhysicalMemory::IsMappable(PFN_COUNT PagesRequested, bool bRetailRegion, bo
 	return ret;
 }
 
-PXBOX_PFN PhysicalMemory::GetPfnOfPT(PMMPTE pPte)
+VAddr PhysicalMemory::GetPfnOfPT(VAddr pPte)
 {
 	PXBOX_PFN PTpfn;
+	MMPTE Pde;
 
 	// GetPteAddress on a pte address will yield the corresponding pde which maps the supplied pte
-	PMMPTE PointerPde = GetPteAddress(pPte);
+	VAddr PointerPde = GetPteAddress(pPte);
 	// PointerPde should have already been written to by AllocatePT
-	assert(PointerPde->Hardware.Valid != 0);
+	mem_read_32(g_CPU, PointerPde, Pde.Default);
+	assert(Pde.Hardware.Valid != 0);
 	if (m_MmLayoutRetail || m_MmLayoutDebug) {
-		PTpfn = XBOX_PFN_ELEMENT(PointerPde->Hardware.PFN);
+		PTpfn = XBOX_PFN_ELEMENT(Pde.Hardware.PFN);
 	}
-	else { PTpfn = CHIHIRO_PFN_ELEMENT(PointerPde->Hardware.PFN); }
+	else { PTpfn = CHIHIRO_PFN_ELEMENT(Pde.Hardware.PFN); }
 	assert(PTpfn->PTPageFrame.Busy == 1);
 	assert(PTpfn->PTPageFrame.BusyType == SystemPageTableType ||
 		PTpfn->PTPageFrame.BusyType == VirtualPageTableType);
 
-	return PTpfn;
+	return reinterpret_cast<VAddr>(PTpfn);
 }
