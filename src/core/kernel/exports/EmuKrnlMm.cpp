@@ -285,7 +285,7 @@ XBSYSAPI EXPORTNUM(175) xboxkrnl::VOID NTAPI xboxkrnl::MmLockUnlockBufferPages
 		LOG_FUNC_ARG(UnlockPages)
 	LOG_FUNC_END;
 
-	// REMARK: all the pages inside the main memory pool are non-relocatable so, for the moment, this function is pointless
+	// REMARK: We never do page relocations so this function is pointless at the moment
 
 	g_VMManager.LockBufferOrSinglePage(0, (VAddr)BaseAddress, NumberOfBytes, UnlockPages);
 }
@@ -304,7 +304,7 @@ XBSYSAPI EXPORTNUM(176) xboxkrnl::VOID NTAPI xboxkrnl::MmLockUnlockPhysicalPage
 		LOG_FUNC_ARG(UnlockPage)
 	LOG_FUNC_END;
 
-	// REMARK: all the pages inside the main memory pool are non-relocatable so, for the moment, this function is pointless
+	// REMARK: We never do page relocations so this function is pointless at the moment
 
 	g_VMManager.LockBufferOrSinglePage(PhysicalAddress, 0, 0, UnlockPage);
 }

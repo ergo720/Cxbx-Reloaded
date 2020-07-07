@@ -207,6 +207,7 @@ file (GLOB CXBXR_HEADER_EMU
  "${CXBXR_ROOT_DIR}/src/devices/video/swizzle.h"
  "${CXBXR_ROOT_DIR}/src/devices/video/vga.h"
  "${CXBXR_ROOT_DIR}/src/devices/x86/EmuX86.h"
+ "${CXBXR_ROOT_DIR}/src/devices/x86/CPUDevice.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/Xbox.h"
 )
 
@@ -378,6 +379,7 @@ file (GLOB CXBXR_SOURCE_EMU
  "${CXBXR_ROOT_DIR}/src/devices/video/qemu-thread-win32.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/video/swizzle.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/x86/EmuX86.cpp"
+ "${CXBXR_ROOT_DIR}/src/devices/x86/CPUDevice.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/Xbox.cpp"
  # Temporary usage for need ReserveAddressRanges func with cxbx.exe's emulation.
  "${CXBXR_ROOT_DIR}/src/common/ReserveAddressRanges.cpp"

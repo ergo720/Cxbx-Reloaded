@@ -49,7 +49,6 @@
 #ifdef VOID
 #undef VOID
 #endif
-#include "lib86cpu.h"
 
 
 constexpr char str_persistent_memory_s[] = "PersistentMemory-s";
@@ -163,6 +162,10 @@ void VMManager::Initialize(unsigned int SystemType, int BootFlags)
 	// Construct the page directory
 	InitializePageDirectory();
 
+	// Activate pagination now
+	XBOX_REG_WRITE(REG_CR0, (XBOX_REG_READ(REG_CR0)) | (1 << 31));
+	XBOX_TLB_FLUSH(0, MAX_VIRTUAL_ADDRESS);
+
 	if ((BootFlags & BOOT_QUICK_REBOOT) == 0) {
 		InitializeSystemAllocations();
 	}
@@ -214,28 +217,10 @@ void VMManager::InitializeSystemAllocations()
 	PFN pfn;
 	PFN pfn_end;
 
-#if 0
-	// ergo720: on devkits, the pfn allocation spans across the retail-debug region boundary (it's 16 pages before and
-	// 16 pages after). I decided to split this 32 pages equally between the retail and debug regions, however, this is
-	// just a guess of mine, I could be wrong on this...
-
 	// Construct the pfn's of the pages holding the pfn database
-	if (m_MmLayoutRetail) {
-		pfn = XBOX_PFN_DATABASE_PHYSICAL_PAGE;
-		pfn_end = XBOX_PFN_DATABASE_PHYSICAL_PAGE + 16 - 1;
-	}
-	else if (m_MmLayoutDebug) {
-		pfn = XBOX_PFN_DATABASE_PHYSICAL_PAGE;
-		pfn_end = XBOX_PFN_DATABASE_PHYSICAL_PAGE + 32 - 1;
-	}
-	else {
-		pfn = CHIHIRO_PFN_DATABASE_PHYSICAL_PAGE;
-		pfn_end = CHIHIRO_PFN_DATABASE_PHYSICAL_PAGE + 32 - 1;
-	}
-	AllocateContiguousMemoryInternal(pfn_end - pfn + 1, pfn, pfn_end, 1, XBOX_PAGE_READWRITE);
-	PersistMemory((VAddr)CONVERT_PFN_TO_CONTIGUOUS_PHYSICAL(pfn), (pfn_end - pfn + 1) << PAGE_SHIFT, true);
-	if (m_MmLayoutDebug) { m_PhysicalPagesAvailable += 16; m_DebuggerPagesAvailable -= 16; }
-#endif
+	InitializePfnDatabase();
+
+
 	// Construct the pfn of the page used by D3D
 	AllocateContiguousMemory(PAGE_SIZE, D3D_PHYSICAL_PAGE, D3D_PHYSICAL_PAGE + PAGE_SIZE - 1, 0, XBOX_PAGE_READWRITE);
 	PersistMemory(CONTIGUOUS_MEMORY_BASE, PAGE_SIZE, true);
@@ -344,7 +329,7 @@ void VMManager::RestorePersistentMemory()
 		}
 		size_t size = pages_num << PAGE_SHIFT;
 		VAddr addr = persisted_mem->Data[i] - (size - PAGE_SIZE);
-		AllocatePT(size, addr);
+		AllocatePT(addr, size);
 		ConstructVMA(addr, size, ContiguousRegion, AllocatedVma, false);
 		GetPfnOfPT(GetPteAddress(addr))->PTPageFrame.PtesUsed += pages_num;
 		pages_num = 1;
@@ -485,30 +470,33 @@ VAddr VMManager::DbgTestPte(VAddr addr, PMMPTE Pte, bool bWriteCheck)
 
 		WRITE_ZERO_PTE(reinterpret_cast<VAddr>(Pte));
 		PointerPte = GetPdeAddress(addr);
-		MMPTE Pte2;
-		mem_read_32(g_CPU, PointerPte, Pte2.Default);
-		if (Pte2.Hardware.LargePage == 0) { PointerPte = GetPteAddress(addr); }
+		MMPTE TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+		if (TempPte.Hardware.LargePage == 0) {
+			PointerPte = GetPteAddress(addr);
+			TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+		}
 
-		if (Pte2.Hardware.Write == 0)
+		if (TempPte.Hardware.Write == 0)
 		{
-			MMPTE TempPte = Pte2;
-			*Pte = TempPte;
-			TempPte.Hardware.Write = 1;
-			WRITE_PTE(PointerPte, TempPte.Default);
+			MMPTE TempPte2 = TempPte;
+			WRITE_PTE(reinterpret_cast<VAddr>(Pte), &TempPte2.Default);
+			TempPte2.Hardware.Write = 1;
+			WRITE_PTE(PointerPte, &TempPte2.Default);
 		}
 		ret = addr;
 	}
 	else
 	{
-		MMPTE Pte2;
-		mem_read_32(g_CPU, reinterpret_cast<VAddr>(Pte), Pte2.Default);
-		if (Pte2.Default != 0)
+		MMPTE TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(reinterpret_cast<VAddr>(Pte), 4).data());
+		if (TempPte.Default != 0)
 		{
 			PointerPte = GetPdeAddress(addr);
-			MMPTE Pte3;
-			mem_read_32(g_CPU, PointerPte, Pte3.Default);
-			if (Pte3.Hardware.LargePage == 0) { PointerPte = GetPteAddress(addr); }
-			WRITE_PTE(PointerPte, Pte2.Default);
+			MMPTE TempPte2 = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+			if (TempPte2.Hardware.LargePage == 0) {
+				PointerPte = GetPteAddress(addr);
+				TempPte2 = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+			}
+			WRITE_PTE(PointerPte, &TempPte.Default);
 		}
 	}
 
@@ -580,7 +568,7 @@ VAddr VMManager::ClaimGpuMemory(size_t Size, size_t* BytesToSkip)
 			PointerPte = GetPteAddress(CONVERT_PFN_TO_CONTIGUOUS_PHYSICAL(pfn));
 			EndingPte = GetPteAddress(CONVERT_PFN_TO_CONTIGUOUS_PHYSICAL(EndingPfn));
 
-			mem_read_32(g_CPU, PointerPte, Pte.Default);
+			Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 			WritePte(PointerPte, EndingPte, Pte, 0, true);
 			WritePfn(pfn, EndingPfn, PointerPte, ContiguousType, true);
 			InsertFree(pfn, EndingPfn);
@@ -596,7 +584,7 @@ VAddr VMManager::ClaimGpuMemory(size_t Size, size_t* BytesToSkip)
 				PointerPte = GetPteAddress(CONVERT_PFN_TO_CONTIGUOUS_PHYSICAL(pfn));
 				EndingPte = GetPteAddress(CONVERT_PFN_TO_CONTIGUOUS_PHYSICAL(EndingPfn));
 
-				mem_read_32(g_CPU, PointerPte, Pte.Default);
+				Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 				WritePte(PointerPte, EndingPte, Pte, 0, true);
 				WritePfn(pfn, EndingPfn, PointerPte, ContiguousType, true);
 				InsertFree(pfn, EndingPfn);
@@ -621,32 +609,24 @@ void VMManager::PersistMemory(VAddr addr, size_t Size, bool bPersist)
 		LOG_FUNC_ARG(bPersist)
 	LOG_FUNC_END;
 
-	VAddr PointerPte;
-	VAddr EndingPte;
-	MMPTE Pte;
-
 	assert(IS_PHYSICAL_ADDRESS(addr)); // only contiguous memory can be made persistent
 
 	Lock();
 
-	PointerPte = GetPteAddress(addr);
-	EndingPte = GetPteAddress(addr + Size - 1);
+	VAddr PointerPte = GetPteAddress(addr);
+	VAddr EndingPte = GetPteAddress(addr + Size - 1);
 
 	if (bPersist) {
 		while (PointerPte <= EndingPte)
 		{
-			mem_read_32(g_CPU, PointerPte, Pte.Default);
-			Pte.Hardware.Persist = 1;
-			WRITE_PTE(PointerPte, Pte.Default);
+			XBOX_MEM_WRITE(PointerPte, 4, &((*reinterpret_cast<uint32_t *>(XBOX_MEM_READ(PointerPte, 4).data())) |= PTE_PERSIST_MASK));
 			PointerPte += 4;
 		}
 	}
 	else {
 		while (PointerPte <= EndingPte)
 		{
-			mem_read_32(g_CPU, PointerPte, Pte.Default);
-			Pte.Hardware.Persist = 0;
-			WRITE_PTE(PointerPte, Pte.Default);
+			XBOX_MEM_WRITE(PointerPte, 4, &((*reinterpret_cast<uint32_t *>(XBOX_MEM_READ(PointerPte, 4).data())) &= ~PTE_PERSIST_MASK));
 			PointerPte += 4;
 		}
 	}
@@ -679,7 +659,7 @@ VAddr VMManager::Allocate(size_t Size)
 	if (!addr) { goto Fail; }
 
 	// Check if we have to construct the PT's for this allocation
-	if (!AllocatePT(PteNumber << PAGE_SHIFT, addr))
+	if (!AllocatePT(addr, PteNumber << PAGE_SHIFT))
 	{
 		VirtualFree((void*)addr, 0, MEM_RELEASE);
 		goto Fail;
@@ -687,7 +667,7 @@ VAddr VMManager::Allocate(size_t Size)
 
 	// Finally, write the pte's and the pfn's
 	PointerPte = GetPteAddress(addr);
-	EndingPte = PointerPte + PteNumber - 1;
+	EndingPte = PointerPte + (PteNumber - 1) * 4;
 
 	while (PointerPte <= EndingPte)
 	{
@@ -771,7 +751,7 @@ VAddr VMManager::AllocateSystemMemory(PageType BusyType, DWORD Perms, size_t Siz
 	if (!addr) { goto Fail; }
 
 	// check if we have to construct the PT's for this allocation
-	if (!AllocatePT(PteNumber << PAGE_SHIFT, addr))
+	if (!AllocatePT(addr, PteNumber << PAGE_SHIFT))
 	{
 		VirtualFree((void*)addr, 0, MEM_DECOMMIT);
 		goto Fail;
@@ -785,14 +765,13 @@ VAddr VMManager::AllocateSystemMemory(PageType BusyType, DWORD Perms, size_t Siz
 		// with bZero set because that will decrease the number of pte's used
 
 		VAddr PTpfn = GetPfnOfPT(PointerPte);
-		XBOX_PFN Pfn;
-		mem_read_32(g_CPU, PTpfn, Pfn.Default);
-		Pfn.PTPageFrame.PtesUsed++;
-		mem_write_32(g_CPU, PTpfn, Pfn.Default);
+		XBOX_PFN pfn = *reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(PTpfn, 4).data());
+		pfn.PTPageFrame.PtesUsed++;
+		XBOX_MEM_WRITE(PTpfn, 4, &pfn);
 		WRITE_ZERO_PTE(PointerPte);
-		PointerPte++;
+		PointerPte += 4;
 	}
-	EndingPte = PointerPte + PagesNumber - 1;
+	EndingPte = PointerPte + (PagesNumber - 1) * 4;
 
 	while (PointerPte <= EndingPte)
 	{
@@ -800,13 +779,10 @@ VAddr VMManager::AllocateSystemMemory(PageType BusyType, DWORD Perms, size_t Siz
 		WritePfn(pfn, pfn, PointerPte, BusyType);
 		WritePte(PointerPte, PointerPte, TempPte, pfn);
 
-		PointerPte++;
+		PointerPte += 4;
 	}
-	MMPTE LastPte;
-	mem_read_32(g_CPU, EndingPte, LastPte.Default);
-	LastPte.Hardware.GuardOrEnd = 1;
-	mem_write_32(g_CPU, EndingPte, LastPte.Default);
 
+	XBOX_MEM_WRITE(EndingPte, 4, &((*reinterpret_cast<uint32_t *>(XBOX_MEM_READ(EndingPte, 4).data())) |= PTE_GUARD_END_MASK));
 	ConstructVMA(addr, PteNumber << PAGE_SHIFT, MemoryType, AllocatedVma);
 
 	Unlock();
@@ -876,7 +852,7 @@ VAddr VMManager::AllocateContiguousMemoryInternal(PFN_COUNT NumberOfPages, PFN L
 	EndingPfn = pfn + NumberOfPages - 1;
 
 	// check if we have to construct the PT's for this allocation
-	if (!AllocatePT(NumberOfPages << PAGE_SHIFT, addr))
+	if (!AllocatePT(addr, NumberOfPages << PAGE_SHIFT))
 	{
 		InsertFree(pfn, EndingPfn);
 		goto Fail;
@@ -884,16 +860,12 @@ VAddr VMManager::AllocateContiguousMemoryInternal(PFN_COUNT NumberOfPages, PFN L
 
 	// Finally, write the pte's and the pfn's
 	PointerPte = GetPteAddress(addr);
-	EndingPte = PointerPte + NumberOfPages - 1;
+	EndingPte = PointerPte + (NumberOfPages - 1) * 4;
 
 	WritePte(PointerPte, EndingPte, TempPte, pfn);
-	m_PagesByUsage[ContiguousType] += NumberOfPages;
-	//WritePfn(pfn, EndingPfn, PointerPte, ContiguousType);
-	MMPTE LastPte;
-	mem_read_32(g_CPU, EndingPte, LastPte.Default);
-	LastPte.Hardware.GuardOrEnd = 1;
-	mem_write_32(g_CPU, EndingPte, LastPte.Default);
-
+	XBOX_TLB_FLUSH(addr, addr + (NumberOfPages << PAGE_SHIFT) - 1);
+	WritePfn(pfn, EndingPfn, PointerPte, ContiguousType);
+	XBOX_MEM_WRITE(EndingPte, 4, &((*reinterpret_cast<uint32_t *>(XBOX_MEM_READ(EndingPte, 4).data())) |= PTE_GUARD_END_MASK));
 	ConstructVMA(addr, NumberOfPages << PAGE_SHIFT, ContiguousRegion, AllocatedVma, false);
 
 	return addr;
@@ -933,13 +905,13 @@ VAddr VMManager::MapDeviceMemory(PAddr Paddr, size_t Size, DWORD Perms)
 	if (!addr) { goto Fail; }
 
 	// Check if we have to construct the PT's for this allocation
-	if (!AllocatePT(PteNumber << PAGE_SHIFT, addr)) {
+	if (!AllocatePT(addr, PteNumber << PAGE_SHIFT)) {
 		goto Fail;
 	}
 
 	// Finally, write the pte's
 	PointerPte = GetPteAddress(addr);
-	EndingPte = PointerPte + PteNumber - 1;
+	EndingPte = PointerPte + (PteNumber - 1) * 4;
 	pfn = Paddr >> PAGE_SHIFT;
 
 	WritePte(PointerPte, EndingPte, TempPte, pfn);
@@ -962,7 +934,6 @@ void VMManager::Deallocate(VAddr addr)
 	VAddr PointerPte;
 	VAddr StartingPte;
 	VAddr EndingPte;
-	PFN pfn;
 	PFN_COUNT PteNumber;
 	VMAIter it;
 	bool bOverflow;
@@ -981,24 +952,22 @@ void VMManager::Deallocate(VAddr addr)
 	}
 
 	PointerPte = GetPteAddress(addr);
-	EndingPte = PointerPte + (it->second.size >> PAGE_SHIFT) - 1;
+	EndingPte = PointerPte + ((it->second.size >> PAGE_SHIFT) - 1) * 4;
 	StartingPte = PointerPte;
-	PteNumber = EndingPte - StartingPte + 1;
+	PteNumber = ((EndingPte - StartingPte) / 4) + 1;
 
-	MMPTE Pte;
 	while (PointerPte <= EndingPte)
 	{
-		mem_read_32(g_CPU, PointerPte, Pte.Default);
-		pfn = Pte.Hardware.PFN;
+		MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+		PFN pfn = Pte.Hardware.PFN;
 		InsertFree(pfn, pfn);
 		WritePfn(pfn, pfn, PointerPte, ImageType, true);
 		PointerPte += 4;
 	}
 
-	mem_read_32(g_CPU, StartingPte, Pte.Default);
-	WritePte(StartingPte, EndingPte, Pte, 0, true);
+	WritePte(StartingPte, EndingPte, MMPTE{0}, 0, true);
 	DestructVMA(it->first, UserRegion, it->second.size);
-	DeallocatePT(PteNumber << PAGE_SHIFT, addr);
+	DeallocatePT(addr, PteNumber << PAGE_SHIFT);
 
 	Unlock();
 }
@@ -1009,19 +978,13 @@ void VMManager::DeallocateContiguousMemory(VAddr addr)
 		LOG_FUNC_ARG(addr)
 	LOG_FUNC_END;
 
-	VAddr StartingPte;
-	VAddr EndingPte;
-	PFN pfn;
-	PFN EndingPfn;
-	VMAIter it;
-	bool bOverflow;
-
 	assert(CHECK_ALIGNMENT(addr, PAGE_SIZE)); // all starting addresses in the contiguous region are page aligned
 	assert(IS_PHYSICAL_ADDRESS(addr));
 
 	Lock();
 
-	it = CheckConflictingVMA(addr, 0, ContiguousRegion, &bOverflow);
+	bool bOverflow;
+	VMAIter it = CheckConflictingVMA(addr, 0, ContiguousRegion, &bOverflow);
 
 	if (it == m_MemoryRegionArray[ContiguousRegion].RegionMap.end() || bOverflow)
 	{
@@ -1029,19 +992,17 @@ void VMManager::DeallocateContiguousMemory(VAddr addr)
 		return;
 	}
 
-	StartingPte = GetPteAddress(addr);
-	EndingPte = StartingPte + (it->second.size >> PAGE_SHIFT) - 1;
-
-	MMPTE Pte;
-	mem_read_32(g_CPU, StartingPte, Pte.Default);
-	pfn = Pte.Hardware.PFN;
-	EndingPfn = pfn + (EndingPte - StartingPte);
+	VAddr StartingPte = GetPteAddress(addr);
+	VAddr EndingPte = StartingPte + ((it->second.size >> PAGE_SHIFT) - 1) * 4;
+	MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(StartingPte, 4).data());
+	PFN pfn = Pte.Hardware.PFN;
+	PFN EndingPfn = pfn + ((EndingPte - StartingPte) / 4);
 
 	InsertFree(pfn, EndingPfn);
 	WritePfn(pfn, EndingPfn, StartingPte, ContiguousType, true);
 	WritePte(StartingPte, EndingPte, Pte, 0, true);
 	DestructVMA(it->first, ContiguousRegion, it->second.size);
-	DeallocatePT((EndingPte - StartingPte + 1) << PAGE_SHIFT, addr);
+	DeallocatePT(addr, (EndingPte - StartingPte + 1) << PAGE_SHIFT);
 
 	Unlock();
 }
@@ -1087,33 +1048,31 @@ PFN_COUNT VMManager::DeallocateSystemMemory(PageType BusyType, VAddr addr, size_
 	else { Size = it->second.size; }
 
 	PointerPte = GetPteAddress(addr);
-	MMPTE Pte;
-	mem_read_32(g_CPU, PointerPte, Pte.Default);
+	MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 	if (Pte.Hardware.Valid == 0) {
 		WritePte(PointerPte, PointerPte, Pte, 0, true); // this is the guard page of the stack
-		PointerPte++;
+		PointerPte += 4;
 		Size -= PAGE_SIZE;
 		bGuardPageAdded = true;
 	}
 
-	EndingPte = PointerPte + (Size >> PAGE_SHIFT) - 1;
+	EndingPte = PointerPte + ((Size >> PAGE_SHIFT) - 1) * 4;
 	StartingPte = PointerPte;
-	PteNumber = EndingPte - PointerPte + 1;
+	PteNumber = ((EndingPte - PointerPte) / 4) + 1;
 
 	while (PointerPte <= EndingPte)
 	{
-		mem_read_32(g_CPU, PointerPte, Pte.Default);
+		Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 		pfn = Pte.Hardware.PFN;
 		InsertFree(pfn, pfn);
 		WritePfn(pfn, pfn, PointerPte, BusyType, true);
+		WRITE_ZERO_PTE(PointerPte);
 
-		PointerPte++;
+		PointerPte += 4;
 	}
 
-	mem_read_32(g_CPU, StartingPte, Pte.Default);
-	WritePte(StartingPte, EndingPte, Pte, 0, true);
 	DestructVMA(BusyType == DebuggerType ? addr : it->first, MemoryType, bGuardPageAdded ? Size + PAGE_SIZE : Size);
-	DeallocatePT(bGuardPageAdded ? Size + PAGE_SIZE : Size, addr);
+	DeallocatePT(addr, bGuardPageAdded ? Size + PAGE_SIZE : Size);
 
 	Unlock();
 	RETURN(bGuardPageAdded ? ++PteNumber : PteNumber);
@@ -1151,14 +1110,12 @@ void VMManager::UnmapDeviceMemory(VAddr addr, size_t Size)
 		}
 
 		StartingPte = GetPteAddress(addr);
-		EndingPte = StartingPte + (Size >> PAGE_SHIFT) - 1;
-		PteNumber = EndingPte - StartingPte + 1;
+		EndingPte = StartingPte + ((Size >> PAGE_SHIFT) - 1) * 4;
+		PteNumber = ((EndingPte - StartingPte) / 4) + 1;
 
-		MMPTE Pte;
-		mem_read_32(g_CPU, StartingPte, Pte.Default);
-		WritePte(StartingPte, EndingPte, Pte, 0, true);
+		WritePte(StartingPte, EndingPte, MMPTE{0}, 0, true);
 		DestructVMA(it->first, SystemRegion, it->second.size);
-		DeallocatePT(PteNumber << PAGE_SHIFT, addr);
+		DeallocatePT(addr, PteNumber << PAGE_SHIFT);
 
 		Unlock();
 	}
@@ -1174,7 +1131,6 @@ void VMManager::Protect(VAddr addr, size_t Size, DWORD NewPerms)
 		LOG_FUNC_ARG(NewPerms)
 	LOG_FUNC_END;
 
-	MMPTE TempPte;
 	MMPTE NewPermsPte;
 	VAddr PointerPte;
 	VAddr EndingPte;
@@ -1190,15 +1146,15 @@ void VMManager::Protect(VAddr addr, size_t Size, DWORD NewPerms)
 
 	while (PointerPte <= EndingPte)
 	{
-		mem_read_32(g_CPU, PointerPte, TempPte.Default);
+		MMPTE TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 		if ((TempPte.Default & PTE_SYSTEM_PROTECTION_MASK) != NewPermsPte.Default)
 		{
 			// This zeroes the existent bit protections and applies the new ones
 
 			TempPte.Default = ((TempPte.Default & ~PTE_SYSTEM_PROTECTION_MASK) | NewPermsPte.Default);
-			WRITE_PTE(PointerPte, TempPte.Default);
+			WRITE_PTE(PointerPte, &TempPte.Default);
 		}
-		PointerPte++;
+		PointerPte += 4;
 	}
 
 	Unlock();
@@ -1208,24 +1164,20 @@ DWORD VMManager::QueryProtection(VAddr addr)
 {
 	LOG_FUNC_ONE_ARG(addr);
 
-	VAddr PointerPte;
-	MMPTE TempPte;
 	DWORD Protect;
 
 	// This function can query any virtual address, even invalid ones, so we won't do any vma checks here
 
 	Lock();
 
-	PointerPte = GetPdeAddress(addr);
-	mem_read_32(g_CPU, PointerPte, TempPte.Default);
-
+	VAddr PointerPte = GetPdeAddress(addr);
+	MMPTE TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 	if (TempPte.Hardware.Valid != 0)
 	{
 		if (TempPte.Hardware.LargePage == 0)
 		{
 			PointerPte = GetPteAddress(addr);
-			mem_read_32(g_CPU, PointerPte, TempPte.Default);
-
+			TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 			if ((TempPte.Hardware.Valid != 0) || ((TempPte.Default != 0) && (addr <= HIGHEST_USER_ADDRESS)))
 			{
 				Protect = ConvertPteToXboxPermissions(TempPte.Default);
@@ -1254,8 +1206,6 @@ size_t VMManager::QuerySize(VAddr addr, bool bCxbxCaller)
 {
 	LOG_FUNC_ONE_ARG(addr);
 
-	VAddr PointerPte;
-	PFN_COUNT PagesNumber;
 	size_t Size = 0;
 
 	Lock();
@@ -1290,17 +1240,15 @@ size_t VMManager::QuerySize(VAddr addr, bool bCxbxCaller)
 		// MmCreateKernelStack which is what MmQueryAllocationSize expects. If they are not, this will either fault
 		// or return an incorrect size of at least PAGE_SIZE
 
-		MMPTE Pte;
-		PagesNumber = 1;
-		PointerPte = GetPteAddress(addr);
-		mem_read_32(g_CPU, PointerPte, Pte.Default);
-
+		PFN_COUNT PagesNumber = 1;
+		VAddr PointerPte = GetPteAddress(addr);
+		MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 		while (Pte.Hardware.GuardOrEnd == 0)
 		{
 			assert(Pte.Hardware.Valid != 0); // pte must be valid
 			PagesNumber++;
 			PointerPte += 4;
-			mem_read_32(g_CPU, PointerPte, Pte.Default);
+			Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 		}
 		Size = PagesNumber << PAGE_SHIFT;
 	}
@@ -1318,10 +1266,9 @@ void VMManager::LockBufferOrSinglePage(PAddr paddr, VAddr addr, size_t Size, boo
 		LOG_FUNC_ARG(Size)
 		LOG_FUNC_ARG(bUnLock)
 	LOG_FUNC_END;
-#if 0
-	PMMPTE PointerPte;
-	PMMPTE EndingPte;
-	PFN pfn;
+
+	VAddr PointerPte;
+	VAddr EndingPte;
 	PXBOX_PFN PfnEntry;
 	ULONG LockUnit;
 
@@ -1329,18 +1276,17 @@ void VMManager::LockBufferOrSinglePage(PAddr paddr, VAddr addr, size_t Size, boo
 
 	if (addr) // lock the pages of a buffer
 	{
-		if (!IS_PHYSICAL_ADDRESS(addr) && (GetPdeAddress(addr)->Hardware.LargePage == 0))
+		if (!IS_PHYSICAL_ADDRESS(addr) && (reinterpret_cast<PMMPTE>(XBOX_MEM_READ(GetPdeAddress(addr), 4).data())->Hardware.LargePage == 0))
 		{
 			LockUnit = bUnLock ? -LOCK_COUNT_UNIT : LOCK_COUNT_UNIT;
-
 			PointerPte = GetPteAddress(addr);
 			EndingPte = GetPteAddress(addr + Size - 1);
 
 			while (PointerPte <= EndingPte)
 			{
-				assert(PointerPte->Hardware.Valid != 0);
-
-				pfn = PointerPte->Hardware.PFN;
+				MMPTE TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+				assert(TempPte.Hardware.Valid != 0);
+				PFN pfn = TempPte.Hardware.PFN;
 
 				if (pfn <= m_HighestPage)
 				{
@@ -1349,9 +1295,10 @@ void VMManager::LockBufferOrSinglePage(PAddr paddr, VAddr addr, size_t Size, boo
 					}
 					else { PfnEntry = CHIHIRO_PFN_ELEMENT(pfn); }
 
-					assert(PfnEntry->Busy.Busy != 0);
-
-					PfnEntry->Busy.LockCount += LockUnit;
+					XBOX_PFN TempPfn = *(reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(reinterpret_cast<VAddr>(PfnEntry), 4).data()));
+					assert(TempPfn.Busy.Busy != 0);
+					TempPfn.Busy.LockCount += LockUnit;
+					XBOX_MEM_WRITE(reinterpret_cast<VAddr>(PfnEntry), 4, &TempPfn);
 				}
 				PointerPte++;
 			}
@@ -1359,24 +1306,23 @@ void VMManager::LockBufferOrSinglePage(PAddr paddr, VAddr addr, size_t Size, boo
 	}
 	else // lock a single page
 	{
-		pfn = paddr >> PAGE_SHIFT;
+		PFN pfn = paddr >> PAGE_SHIFT;
 		if (m_MmLayoutRetail || m_MmLayoutDebug) {
 			PfnEntry = XBOX_PFN_ELEMENT(pfn);
 		}
 		else { PfnEntry = CHIHIRO_PFN_ELEMENT(pfn); }
 
-		if (PfnEntry->Busy.BusyType != ContiguousType && pfn <= m_HighestPage)
+		XBOX_PFN TempPfn = *(reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(reinterpret_cast<VAddr>(PfnEntry), 4).data()));
+		if (TempPfn.Busy.BusyType != ContiguousType && pfn <= m_HighestPage)
 		{
 			LockUnit = bUnLock ? -LOCK_COUNT_UNIT : LOCK_COUNT_UNIT;
-
-			assert(PfnEntry->Busy.Busy != 0);
-
-			PfnEntry->Busy.LockCount += LockUnit;
+			assert(TempPfn.Busy.Busy != 0);
+			TempPfn.Busy.LockCount += LockUnit;
+			XBOX_MEM_WRITE(reinterpret_cast<VAddr>(PfnEntry), 4, &TempPfn);
 		}
 	}
 
 	Unlock();
-#endif
 }
 
 xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBits, size_t* Size, DWORD AllocationType, DWORD Protect)
@@ -1774,7 +1720,7 @@ xboxkrnl::NTSTATUS VMManager::XbFreeVirtualMemory(VAddr* addr, size_t* Size, DWO
 	}
 
 	WritePte(StartingPte, EndingPte, *StartingPte, 0, true);
-	DeallocatePT((EndingPte - StartingPte + 1) << PAGE_SHIFT, AlignedCapturedBase);
+	DeallocatePT(AlignedCapturedBase, (EndingPte - StartingPte + 1) << PAGE_SHIFT);
 
 	if (FreeType & ~XBOX_MEM_RELEASE)
 	{
@@ -2170,13 +2116,10 @@ bool VMManager::IsValidVirtualAddress(const VAddr addr)
 {
 	LOG_FUNC_ONE_ARG(addr);
 
-	VAddr PointerPte;
-
 	Lock();
 
-	MMPTE Pte;
-	PointerPte = GetPdeAddress(addr);
-	mem_read_32(g_CPU, PointerPte, Pte.Default);
+	VAddr PointerPte = GetPdeAddress(addr);
+	MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 	if (Pte.Hardware.Valid == 0) // invalid pde -> addr is invalid
 		goto InvalidAddress;
 
@@ -2184,7 +2127,7 @@ bool VMManager::IsValidVirtualAddress(const VAddr addr)
 		goto ValidAddress;
 
 	PointerPte = GetPteAddress(addr);
-	mem_read_32(g_CPU, PointerPte, Pte.Default);
+	Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 	if (Pte.Hardware.Valid == 0) // invalid pte -> addr is invalid
 		goto InvalidAddress;
 
@@ -2207,26 +2150,11 @@ PAddr VMManager::TranslateVAddrToPAddr(const VAddr addr)
 	LOG_FUNC_ONE_ARG(addr);
 
 	PAddr PAddr;
-	VAddr PointerPte;
-
-	// ergo720: horrendous hack, this identity maps all allocations done by the VMManager to keep the LLE USB working.
-	// The problem is that if the user buffer pointed to by the TD is allocated by the VMManager with VirtualAlloc, then
-	// the physical allocation will not reside in the contiguous memory and if we tried to access the physical address of it,
-	// we would access a random page with undefined contents.
-	// NOTE: Once LLE CPU and MMU are implemented, this can be removed.
-
-	if (IsValidVirtualAddress(addr)) {
-		RETURN(addr);
-	}
-	else {
-		RETURN(NULL);
-	}
 
 	Lock();
 
-	MMPTE Pte;
-	PointerPte = GetPdeAddress(addr);
-	mem_read_32(g_CPU, PointerPte, Pte.Default);
+	VAddr PointerPte = GetPdeAddress(addr);
+	MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 	if (Pte.Hardware.Valid == 0) { // invalid pde -> addr is invalid
 		goto InvalidAddress;
 	}
@@ -2234,7 +2162,7 @@ PAddr VMManager::TranslateVAddrToPAddr(const VAddr addr)
 	if (Pte.Hardware.LargePage == 0)
 	{
 		PointerPte = GetPteAddress(addr);
-		mem_read_32(g_CPU, PointerPte, Pte.Default);
+		Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 		if (Pte.Hardware.Valid == 0) { // invalid pte -> addr is invalid
 			goto InvalidAddress;
 		}

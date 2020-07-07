@@ -60,19 +60,19 @@ typedef struct _FreeBlock
 /* The Xbox PTE, modelled around the Intel 386 PTE specification */
 typedef struct _XBOX_PTE
 {
-	ULONG Valid : 1;
-	ULONG Write : 1;
-	ULONG Owner : 1;
-	ULONG WriteThrough : 1;
-	ULONG CacheDisable : 1;
-	ULONG Accessed : 1;
-	ULONG Dirty : 1;
-	ULONG LargePage : 1;
-	ULONG Global : 1;
-	ULONG GuardOrEnd : 1; // software field used for our own purposes
-	ULONG Persist : 1;    // software field used for our own purposes
-	ULONG Unused : 1;     // software field used for our own purposes
-	ULONG PFN : 20;
+	uint32_t Valid : 1;
+	uint32_t Write : 1;
+	uint32_t Owner : 1;
+	uint32_t WriteThrough : 1;
+	uint32_t CacheDisable : 1;
+	uint32_t Accessed : 1;
+	uint32_t Dirty : 1;
+	uint32_t LargePage : 1;
+	uint32_t Global : 1;
+	uint32_t GuardOrEnd : 1; // software field used for our own purposes
+	uint32_t Persist : 1;    // software field used for our own purposes
+	uint32_t Unused : 1;     // software field used for our own purposes
+	uint32_t PFN : 20;
 } XBOX_PTE, *PXBOX_PTE;
 
 
@@ -164,8 +164,8 @@ typedef enum _MmLayout
 #define GetVAddrMappedByPte(Pte) ((VAddr)((uint32_t)(Pte) << 10))
 #define GetPteOffset(Va) ((((ULONG)(Va)) << 10) >> 22)
 #define IsPteOnPdeBoundary(Pte) (((uint32_t)(Pte) & (PAGE_SIZE - 1)) == 0)
-#define WRITE_ZERO_PTE(pPte) mem_write_32(g_CPU, pPte, 0)
-#define WRITE_PTE(pPte, Pte) mem_write_32(g_CPU, pPte, Pte);
+#define WRITE_ZERO_PTE(pPte) XBOX_MEM_WRITE(pPte, 4, std::vector<uint8_t>(4, 0).data())
+#define WRITE_PTE(pPte, Pte) XBOX_MEM_WRITE(pPte, 4, Pte)
 #define DISABLE_CACHING(Pte) ((Pte).Hardware.CacheDisable = 1); ((Pte).Hardware.WriteThrough = 1)
 #define SET_WRITE_COMBINE(Pte) ((Pte).Hardware.CacheDisable = 0); ((Pte).Hardware.WriteThrough = 1)
 #define ValidKernelPteBits (PTE_VALID_MASK | PTE_WRITE_MASK | PTE_DIRTY_MASK | PTE_ACCESS_MASK) // 0x63
@@ -230,6 +230,8 @@ class PhysicalMemory
 		~PhysicalMemory() {};
 		// set up the page directory
 		void InitializePageDirectory();
+		// set up the pfn database
+		void InitializePfnDatabase();
 		// write a contiguous range of pfn's
 		void WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType BusyType, bool bZero = false);
 		// write a contiguous range of pte's
@@ -247,9 +249,9 @@ class PhysicalMemory
 		// convert from pte permissions to the corresponding Xbox protection code
 		DWORD ConvertPteToXboxPermissions(ULONG PteMask);
 		// commit page tables (if necessary)
-		bool AllocatePT(size_t Size, VAddr addr);
+		bool AllocatePT(VAddr addr, size_t size);
 		// deallocate page tables (if possible)
-		void DeallocatePT(size_t Size, VAddr addr);
+		void DeallocatePT(VAddr addr, size_t size);
 		// checks if enough free pages are available for the allocation (doesn't account for fragmentation)
 		bool IsMappable(PFN_COUNT PagesRequested, bool bRetailRegion, bool bDebugRegion);
 };

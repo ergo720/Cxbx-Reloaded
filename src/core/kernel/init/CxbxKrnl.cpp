@@ -1088,32 +1088,12 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		}
 #endif
 
-		if (!LIB86CPU_CHECK_SUCCESS(cpu_new(ramsize, g_CPU))) {
-			CxbxKrnlCleanup("Failed to initialize lib86cpu!\n");
+		// init xbox cpu
+		g_CPU = new Cpu;
+		if (g_CPU == nullptr) {
+			CxbxKrnlCleanup("Failed to construct cpu object!\n");
 		}
-
-		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, 0, ramsize, 1))) {
-			CxbxKrnlCleanup("Failed to initialize ram region!\n");
-		}
-
-		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, CONTIGUOUS_MEMORY_BASE, ramsize, 1))) {
-			CxbxKrnlCleanup("Failed to initialize contiguous region!\n");
-		}
-
-		if (!LIB86CPU_CHECK_SUCCESS(memory_init_region_ram(g_CPU, TILED_MEMORY_BASE, TILED_MEMORY_SIZE, 1))) {
-			CxbxKrnlCleanup("Failed to initialize tiled region!\n");
-		}
-
-		// Activate paging, protection, write-protect and the native numeric error support
-		g_CPU->cpu_ctx.regs.cr0 = (1 << 31) | (1 << 16) | (1 << 5) | 1;
-
-		// Setup cr3 to point to the page directory
-		g_CPU->cpu_ctx.regs.cr3 = PAGE_DIRECTORY_PHYSICAL_ADDRESS;
-
-		// Activate PSE, OSFXSR and OSXMMEXCPT support
-		g_CPU->cpu_ctx.regs.cr4 = (1 << 10) | (1 << 9) | (1 << 4);
-
-		cpu_sync_state(g_CPU);
+		g_CPU->Init(ramsize);
 
 #ifndef LLE_CPU
 #ifndef CXBXR_EMU

@@ -35,7 +35,6 @@
 #ifdef VOID
 #undef VOID
 #endif
-#include "lib86cpu.h"
 
 
 // See the links below for the details about the kernel structure LIST_ENTRY and the related functions
@@ -54,19 +53,19 @@ void PhysicalMemory::InitializePageDirectory()
 	MMPTE TempPte;
 
 	// Clear the page directory
-	std::memset(&g_CPU->cpu_ctx.ram[PAGE_DIRECTORY_PHYSICAL_ADDRESS], 0, PAGE_SIZE);
+	XBOX_RAM_WRITE(PAGE_DIRECTORY_PHYSICAL_ADDRESS, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
 
 	// Write the pde of the page directory
 	TempPte.Default = ValidKernelPteBits;
 	TempPte.Hardware.PFN = PAGE_DIRECTORY_PHYSICAL_ADDRESS >> PAGE_SHIFT;
-	std::memcpy(&g_CPU->cpu_ctx.ram[PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xC00], &TempPte.Default, 4);
+	XBOX_RAM_WRITE(PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xC00, 4, &TempPte.Default);
 
 	// Write the pde's of the WC (tiled) memory - no page tables
 	TempPte.Default = ValidKernelPteBits | PTE_LARGE_PAGE_MASK;
 	TempPte.Hardware.PFN = XBOX_WRITE_COMBINED_BASE >> PAGE_SHIFT;
 	SET_WRITE_COMBINE(TempPte);
 	for (pPde = PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF00; pPde < PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF80; pPde += 4) {
-		std::memcpy(&g_CPU->cpu_ctx.ram[pPde], &TempPte.Default, 4);
+		XBOX_RAM_WRITE(pPde, 4, &TempPte.Default);
 		TempPte.Default += LARGE_PAGE_SIZE; // increase PFN
 	}
 
@@ -74,14 +73,93 @@ void PhysicalMemory::InitializePageDirectory()
 	TempPte.Hardware.PFN = XBOX_UNCACHED_BASE >> PAGE_SHIFT;
 	DISABLE_CACHING(TempPte);
 	for (pPde = PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xF80; pPde < PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xFFC; pPde += 4) {
-		std::memcpy(&g_CPU->cpu_ctx.ram[pPde], &TempPte.Default, 4);
+		XBOX_RAM_WRITE(pPde, 4, &TempPte.Default);
 		TempPte.Default += LARGE_PAGE_SIZE; // increase PFN
 	}
 }
 
+void PhysicalMemory::InitializePfnDatabase()
+{
+	PFN pfn;
+	PFN pfn_end;
+	PFN_COUNT pfn_pde_num;
+	PFN_COUNT pfn_pte_num;
+	VAddr pfn_addr;
+
+	// ergo720: on devkits, the pfn allocation spans across the retail-debug region boundary (it's 16 pages before and
+	// 16 pages after). I decided to split this 32 pages equally between the retail and debug regions, however, this is
+	// just a guess of mine, I could be wrong on this...
+
+	if (m_MmLayoutRetail) {
+		pfn = XBOX_PFN_DATABASE_PHYSICAL_PAGE;
+		pfn_end = XBOX_PFN_DATABASE_PHYSICAL_PAGE + 16 - 1;
+		pfn_addr = CONTIGUOUS_MEMORY_BASE + (pfn << PAGE_SHIFT);
+		pfn_pde_num = PAGES_SPANNED_LARGE(pfn_addr, KiB(64)); // 1
+		pfn_pte_num = 16;
+	}
+	else if (m_MmLayoutDebug) {
+		pfn = XBOX_PFN_DATABASE_PHYSICAL_PAGE;
+		pfn_end = XBOX_PFN_DATABASE_PHYSICAL_PAGE + 32 - 1;
+		pfn_addr = CONTIGUOUS_MEMORY_BASE + (pfn << PAGE_SHIFT);
+		pfn_pde_num = PAGES_SPANNED_LARGE(pfn_addr, KiB(128)); // 2
+		pfn_pte_num = 16; // 16 + 16
+	}
+	else {
+		pfn = CHIHIRO_PFN_DATABASE_PHYSICAL_PAGE;
+		pfn_end = CHIHIRO_PFN_DATABASE_PHYSICAL_PAGE + 32 - 1;
+		pfn_addr = CONTIGUOUS_MEMORY_BASE + (pfn << PAGE_SHIFT);
+		pfn_pde_num = PAGES_SPANNED_LARGE(pfn_addr, KiB(128)); // 1
+		pfn_pte_num = 32;
+	}
+
+	// We have to write the pde(s) of the pfn database ourselves because, when AllocateContiguousMemoryInternal calls AllocatePT, the function will try
+	// to write the pfn of the PT before the pte(s) of the database have been written, thus resulting in a page fault
+	PFN TempArr[2];
+	for (PFN_COUNT i = 0; i < pfn_pde_num; i++) {
+		RemoveFree(1, &TempArr[i], 0, 0, m_MaxContiguousPfn);
+		MMPTE TempPte;
+		TempPte.Default = ValidKernelPdeBits;
+		TempPte.Hardware.PFN = TempArr[i];
+		VAddr pPde = GetPdeAddress(pfn_addr);
+		WRITE_PTE(pPde, &TempPte.Default);
+		XBOX_RAM_WRITE(TempArr[i] << PAGE_SHIFT, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
+		pfn_addr += LARGE_PAGE_SIZE;
+	}
+
+	// We can't just use WritePte because that will also try to write to the pfn database before the ptes are written, thus causing a page fault
+	pfn_addr = CONTIGUOUS_MEMORY_BASE + (pfn << PAGE_SHIFT);
+	PFN_COUNT num_pages = pfn_end - pfn + 1;
+	PFN TempPfn;
+	RemoveFree(num_pages, &TempPfn, 1, pfn, pfn_end);
+	VAddr PointerPte = GetPteAddress(pfn_addr);
+	VAddr EndingPte = PointerPte + (num_pages - 1) * 4;
+	MMPTE TempPte{ ValidKernelPteBits | PTE_PERSIST_MASK };
+	TempPte.Hardware.PFN = TempPfn;
+	for (; PointerPte <= EndingPte; PointerPte += 4) {
+		WRITE_PTE(PointerPte, &TempPte.Default);
+		TempPfn++;
+	}
+	XBOX_TLB_FLUSH(pfn_addr, pfn_addr + (num_pages << PAGE_SHIFT) - 1);
+	if (m_MmLayoutDebug) { m_PhysicalPagesAvailable += 16; m_DebuggerPagesAvailable -= 16; }
+
+	XBOX_RAM_WRITE(pfn << PAGE_SHIFT, num_pages << PAGE_SHIFT, std::vector<uint8_t>(num_pages << PAGE_SHIFT, 0).data());
+	for (PFN_COUNT i = 0; i < pfn_pde_num; i++) {
+		XBOX_PFN TempPF;
+		TempPF.Default = 0;
+		TempPF.Busy.Busy = 1;
+		TempPF.Busy.BusyType = SystemPageTableType;
+		TempPF.PTPageFrame.PtesUsed = pfn_pte_num;
+		if (m_MmLayoutRetail || m_MmLayoutDebug) {
+			XBOX_MEM_WRITE(reinterpret_cast<VAddr>(XBOX_PFN_ELEMENT(TempArr[i])), 4, &TempPF);
+		}
+		else { XBOX_MEM_WRITE(reinterpret_cast<VAddr>(CHIHIRO_PFN_ELEMENT(TempArr[i])), 4, &TempPF); }
+		m_PagesByUsage[SystemPageTableType]++;
+	}
+	WritePfn(pfn, pfn_end, GetPteAddress(pfn_addr), UnknownType);
+}
+
 void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType BusyType, bool bZero)
 {
-#if 0
 	XBOX_PFN TempPF;
 
 	if (bZero)
@@ -90,9 +168,9 @@ void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType B
 		while (pfn_start <= pfn_end)
 		{
 			if (m_MmLayoutRetail || m_MmLayoutDebug) {
-				*XBOX_PFN_ELEMENT(pfn_start) = TempPF;
+				XBOX_MEM_WRITE(reinterpret_cast<VAddr>(XBOX_PFN_ELEMENT(pfn_start)), 4, &TempPF);
 			}
-			else { *CHIHIRO_PFN_ELEMENT(pfn_start) = TempPF; }
+			else { XBOX_MEM_WRITE(reinterpret_cast<VAddr>(CHIHIRO_PFN_ELEMENT(pfn_start)), 4, &TempPF); }
 
 			m_PagesByUsage[BusyType]--;
 			pfn_start++;
@@ -111,16 +189,15 @@ void PhysicalMemory::WritePfn(PFN pfn_start, PFN pfn_end, VAddr pPte, PageType B
 			else { TempPF.PTPageFrame.PtesUsed = 0; } // we are writing a pfn of a PT
 
 			if (m_MmLayoutRetail || m_MmLayoutDebug) {
-				*XBOX_PFN_ELEMENT(pfn_start) = TempPF;
+				XBOX_MEM_WRITE(reinterpret_cast<VAddr>(XBOX_PFN_ELEMENT(pfn_start)), 4, &TempPF);
 			}
-			else { *CHIHIRO_PFN_ELEMENT(pfn_start) = TempPF; }
+			else { XBOX_MEM_WRITE(reinterpret_cast<VAddr>(CHIHIRO_PFN_ELEMENT(pfn_start)), 4, &TempPF); }
 
 			m_PagesByUsage[BusyType]++;
 			pfn_start++;
 			pPte += 4;
 		}
 	}
-#endif
 }
 
 void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn, bool bZero)
@@ -138,19 +215,18 @@ void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn
 	{
 		while (PointerPte <= pPteEnd)
 		{
-#if 0
 			if (PointerPte == pPteStart || IsPteOnPdeBoundary(PointerPte))
 			{
 				pPTpfn = GetPfnOfPT(PointerPte);
-				mem_read_32(g_CPU, pPTpfn, PTpfn.Default);
+				PTpfn = *reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(pPTpfn, 4).data());
 			}
-#endif
-			mem_read_32(g_CPU, PointerPte, TempPte.Default);
+
+			TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 			if (TempPte.Default != 0)
 			{
 				WRITE_ZERO_PTE(PointerPte);
-				//PTpfn.PTPageFrame.PtesUsed--;
-				//mem_write_32(g_CPU, pPTpfn, PTpfn.Default);
+				PTpfn.PTPageFrame.PtesUsed--;
+				XBOX_MEM_WRITE(pPTpfn, 4, &PTpfn);
 			}
 			PointerPte += 4;
 		}
@@ -159,20 +235,19 @@ void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn
 	{
 		while (PointerPte <= pPteEnd)
 		{
-#if 0
 			if (PointerPte == pPteStart || IsPteOnPdeBoundary(PointerPte))
 			{
 				pPTpfn = GetPfnOfPT(PointerPte);
-				mem_read_32(g_CPU, pPTpfn, PTpfn.Default);
+				PTpfn = *reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(pPTpfn, 4).data());
 			}
-#endif
-			mem_read_32(g_CPU, PointerPte, TempPte.Default);
+
+			TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
 			if (TempPte.Default == 0)
 			{
 				Pte.Hardware.PFN = pfn;
-				WRITE_PTE(PointerPte, Pte.Default);
-				//PTpfn.PTPageFrame.PtesUsed++;
-				//mem_write_32(g_CPU, pPTpfn, PTpfn.Default);
+				WRITE_PTE(PointerPte, &Pte.Default);
+				PTpfn.PTPageFrame.PtesUsed++;
+				XBOX_MEM_WRITE(pPTpfn, 4, &PTpfn);
 			}
 			PointerPte += 4;
 			pfn++;
@@ -537,22 +612,21 @@ DWORD PhysicalMemory::ConvertPteToXboxPermissions(ULONG PteMask)
 	return Protect;
 }
 
-bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
+bool PhysicalMemory::AllocatePT(VAddr addr, size_t size)
 {
 	PFN pfn;
-	VAddr pPde;
 	MMPTE TempPte;
-	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, Size);
+	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, size);
 	PFN_COUNT PTtoCommit = 0;
 	PageType BusyType = SystemPageTableType;
 	VAddr StartingAddr = addr;
 
-	assert(Size);
+	assert(size);
 	assert(addr);
 
 	for (unsigned int i = 0; i < PdeNumber; ++i)
 	{
-		mem_read_32(g_CPU, GetPdeAddress(StartingAddr), TempPte.Default);
+		TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(GetPdeAddress(StartingAddr), 4).data());
 		if (TempPte.Hardware.Valid == 0)
 		{
 			PTtoCommit++;
@@ -581,8 +655,8 @@ bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 
 	for (unsigned int i = 0; i < PdeNumber; ++i)
 	{
-		pPde = GetPdeAddress(StartingAddr);
-		mem_read_32(g_CPU, pPde, TempPte.Default);
+		VAddr pPde = GetPdeAddress(StartingAddr);
+		TempPte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(pPde, 4).data());
 		if (TempPte.Hardware.Valid == 0)
 		{
 			// We grab one page at a time to avoid fragmentation issues. The maximum allowed page is m_MaxContiguousPfn
@@ -591,38 +665,35 @@ bool PhysicalMemory::AllocatePT(size_t Size, VAddr addr)
 			RemoveFree(1, &pfn, 0, 0, m_MaxContiguousPfn);
 			TempPte.Default = ValidKernelPdeBits;
 			TempPte.Hardware.PFN = pfn;
-			WRITE_PTE(pPde, TempPte.Default);
-			std::memset(&g_CPU->cpu_ctx.ram[pfn << PAGE_SHIFT], 0, PAGE_SIZE);
-			//WritePfn(pfn, pfn, pPde, BusyType);
+			WRITE_PTE(pPde, &TempPte.Default);
+			XBOX_RAM_WRITE(pfn << PAGE_SHIFT, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
+			WritePfn(pfn, pfn, pPde, BusyType);
 		}
 		StartingAddr += LARGE_PAGE_SIZE;
 	}
 
-	m_PagesByUsage[BusyType] += PTtoCommit;
 	return true;
 }
 
-void PhysicalMemory::DeallocatePT(size_t Size, VAddr addr)
+void PhysicalMemory::DeallocatePT(VAddr addr, size_t size)
 {
 	VAddr pPde;
 	VAddr PTpfn;
-	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, Size);
+	PFN_COUNT PdeNumber = PAGES_SPANNED_LARGE(addr, size);
 	VAddr StartingAddr = addr;
 
-	assert(Size);
+	assert(size);
 	assert(addr);
 
 	for (unsigned int i = 0; i < PdeNumber; ++i)
 	{
 		pPde = GetPdeAddress(StartingAddr);
 		PTpfn = GetPfnOfPT(GetPteAddress(StartingAddr));
-		XBOX_PFN Pfn;
-		mem_read_32(g_CPU, PTpfn, Pfn.Default);
+		XBOX_PFN Pfn = *reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(PTpfn, 4).data());
 
 		if (Pfn.PTPageFrame.PtesUsed == 0)
 		{
-			MMPTE Pde;
-			mem_read_32(g_CPU, pPde, Pde.Default);
+			MMPTE Pde = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(pPde, 4).data());
 			InsertFree(Pde.Hardware.PFN, Pde.Hardware.PFN);
 			WritePfn(Pde.Hardware.PFN, Pde.Hardware.PFN, pPde, (PageType)Pfn.PTPageFrame.BusyType, true);
 			WRITE_ZERO_PTE(pPde);
@@ -644,20 +715,20 @@ bool PhysicalMemory::IsMappable(PFN_COUNT PagesRequested, bool bRetailRegion, bo
 VAddr PhysicalMemory::GetPfnOfPT(VAddr pPte)
 {
 	PXBOX_PFN PTpfn;
-	MMPTE Pde;
 
 	// GetPteAddress on a pte address will yield the corresponding pde which maps the supplied pte
-	VAddr PointerPde = GetPteAddress(pPte);
 	// PointerPde should have already been written to by AllocatePT
-	mem_read_32(g_CPU, PointerPde, Pde.Default);
+	MMPTE Pde = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(GetPteAddress(pPte), 4).data());
 	assert(Pde.Hardware.Valid != 0);
 	if (m_MmLayoutRetail || m_MmLayoutDebug) {
 		PTpfn = XBOX_PFN_ELEMENT(Pde.Hardware.PFN);
 	}
 	else { PTpfn = CHIHIRO_PFN_ELEMENT(Pde.Hardware.PFN); }
-	assert(PTpfn->PTPageFrame.Busy == 1);
-	assert(PTpfn->PTPageFrame.BusyType == SystemPageTableType ||
-		PTpfn->PTPageFrame.BusyType == VirtualPageTableType);
+
+	[[maybe_unused]] XBOX_PFN pfn = *reinterpret_cast<PXBOX_PFN>(XBOX_MEM_READ(reinterpret_cast<VAddr>(PTpfn), 4).data());
+	assert(pfn.PTPageFrame.Busy == 1);
+	assert(pfn.PTPageFrame.BusyType == SystemPageTableType ||
+		pfn.PTPageFrame.BusyType == VirtualPageTableType);
 
 	return reinterpret_cast<VAddr>(PTpfn);
 }

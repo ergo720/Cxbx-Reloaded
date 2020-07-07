@@ -31,7 +31,6 @@
 #ifdef VOID
 #undef VOID
 #endif
-#include "lib86cpu.h" // For the cpu device
 
 PCIBus* g_PCIBus;
 SMBus* g_SMBus;
@@ -42,7 +41,6 @@ NVNetDevice* g_NVNet;
 NV2ADevice* g_NV2A;
 ADM1032Device* g_ADM1032;
 USBDevice* g_USB0;
-cpu_t *g_CPU;
 
 MCPXRevision MCPXRevisionFromHardwareModel(HardwareModel hardwareModel)
 {

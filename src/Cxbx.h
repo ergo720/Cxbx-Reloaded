@@ -32,6 +32,9 @@
 /*! xbaddr is the type of a physical address */
 typedef uint32_t xbaddr;
 
+/*! xbport is the type of an i/o port */
+typedef uint16_t xbport;
+
 /*! xbnullptr is the type of null pointer address*/
 #define xbnullptr nullptr
 
