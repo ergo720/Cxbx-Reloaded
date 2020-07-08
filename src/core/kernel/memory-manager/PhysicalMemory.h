@@ -41,8 +41,8 @@ namespace xboxkrnl
 
 
 /* Global typedefs */
-typedef uintptr_t VAddr;
-typedef uintptr_t PAddr;
+typedef xbaddr VAddr;
+typedef xbaddr PAddr;
 typedef uint32_t u32;
 typedef unsigned int PFN;
 typedef unsigned int PFN_COUNT;

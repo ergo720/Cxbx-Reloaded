@@ -53,12 +53,14 @@ void PhysicalMemory::InitializePageDirectory()
 	MMPTE TempPte;
 
 	// Clear the page directory
-	XBOX_RAM_WRITE(PAGE_DIRECTORY_PHYSICAL_ADDRESS, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
+	PAddr TempAddr = PAGE_DIRECTORY_PHYSICAL_ADDRESS;
+	XBOX_RAM_ZERO(TempAddr, PAGE_SIZE);
 
 	// Write the pde of the page directory
 	TempPte.Default = ValidKernelPteBits;
 	TempPte.Hardware.PFN = PAGE_DIRECTORY_PHYSICAL_ADDRESS >> PAGE_SHIFT;
-	XBOX_RAM_WRITE(PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xC00, 4, &TempPte.Default);
+	TempAddr = PAGE_DIRECTORY_PHYSICAL_ADDRESS + 0xC00;
+	XBOX_RAM_WRITE(TempAddr, 4, &TempPte.Default);
 
 	// Write the pde's of the WC (tiled) memory - no page tables
 	TempPte.Default = ValidKernelPteBits | PTE_LARGE_PAGE_MASK;
@@ -122,7 +124,7 @@ void PhysicalMemory::InitializePfnDatabase()
 		TempPte.Hardware.PFN = TempArr[i];
 		VAddr pPde = GetPdeAddress(pfn_addr);
 		WRITE_PTE(pPde, &TempPte.Default);
-		XBOX_RAM_WRITE(TempArr[i] << PAGE_SHIFT, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
+		XBOX_RAM_ZERO(TempArr[i] << PAGE_SHIFT, PAGE_SIZE);
 		pfn_addr += LARGE_PAGE_SIZE;
 	}
 
@@ -142,7 +144,7 @@ void PhysicalMemory::InitializePfnDatabase()
 	XBOX_TLB_FLUSH(pfn_addr, pfn_addr + (num_pages << PAGE_SHIFT) - 1);
 	if (m_MmLayoutDebug) { m_PhysicalPagesAvailable += 16; m_DebuggerPagesAvailable -= 16; }
 
-	XBOX_RAM_WRITE(pfn << PAGE_SHIFT, num_pages << PAGE_SHIFT, std::vector<uint8_t>(num_pages << PAGE_SHIFT, 0).data());
+	XBOX_RAM_ZERO(pfn << PAGE_SHIFT, num_pages << PAGE_SHIFT);
 	for (PFN_COUNT i = 0; i < pfn_pde_num; i++) {
 		XBOX_PFN TempPF;
 		TempPF.Default = 0;
@@ -225,6 +227,7 @@ void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn
 			if (TempPte.Default != 0)
 			{
 				WRITE_ZERO_PTE(PointerPte);
+				XBOX_TLB_FLUSH(PointerPte, PointerPte);
 				PTpfn.PTPageFrame.PtesUsed--;
 				XBOX_MEM_WRITE(pPTpfn, 4, &PTpfn);
 			}
@@ -246,6 +249,7 @@ void PhysicalMemory::WritePte(VAddr pPteStart, VAddr pPteEnd, MMPTE Pte, PFN pfn
 			{
 				Pte.Hardware.PFN = pfn;
 				WRITE_PTE(PointerPte, &Pte.Default);
+				XBOX_TLB_FLUSH(PointerPte, PointerPte);
 				PTpfn.PTPageFrame.PtesUsed++;
 				XBOX_MEM_WRITE(pPTpfn, 4, &PTpfn);
 			}
@@ -666,7 +670,7 @@ bool PhysicalMemory::AllocatePT(VAddr addr, size_t size)
 			TempPte.Default = ValidKernelPdeBits;
 			TempPte.Hardware.PFN = pfn;
 			WRITE_PTE(pPde, &TempPte.Default);
-			XBOX_RAM_WRITE(pfn << PAGE_SHIFT, PAGE_SIZE, std::vector<uint8_t>(PAGE_SIZE, 0).data());
+			XBOX_RAM_ZERO(pfn << PAGE_SHIFT, PAGE_SIZE);
 			WritePfn(pfn, pfn, pPde, BusyType);
 		}
 		StartingAddr += LARGE_PAGE_SIZE;

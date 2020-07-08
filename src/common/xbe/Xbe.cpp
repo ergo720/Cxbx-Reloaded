@@ -732,12 +732,12 @@ void* Xbe::FindSection(xboxkrnl::PXBEIMAGE_SECTION section)
 {
 	for (uint32_t v = 0; v < m_Header.dwSections; v++) {
 		if (m_SectionHeader[v].dwVirtualAddr > 0 && m_SectionHeader[v].dwVirtualSize > 0) {
-			if (m_SectionHeader[v].dwRawAddr == section->FileAddress && m_SectionHeader[v].dwVirtualAddr == (uint32_t)(section->VirtualAddress)
-				&& m_SectionHeader[v].dwVirtualSize == section->VirtualSize) {
+			if (m_SectionHeader[v].dwRawAddr == *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(section, xboxkrnl::XBEIMAGE_SECTION, FileAddress)), 4).data()) &&
+				m_SectionHeader[v].dwVirtualAddr == *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(section, xboxkrnl::XBEIMAGE_SECTION, VirtualAddress)), 4).data()) &&
+				m_SectionHeader[v].dwVirtualSize == *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(section, xboxkrnl::XBEIMAGE_SECTION, VirtualSize)), 4).data())) {
 				return m_bzSection[v];
 			}
 		}
-
 	}
 
 	return nullptr;

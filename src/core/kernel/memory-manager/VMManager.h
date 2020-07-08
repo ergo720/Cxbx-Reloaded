@@ -175,9 +175,7 @@ class VMManager : public PhysicalMemory
 		// clears all memory region structs
 		void DestroyMemoryRegions();
 		// map a memory block with the supplied allocation routine
-		VAddr MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, DWORD Permissions, uint32_t Alignment, VAddr HighestAddress = 0);
-		// helper function which allocates user memory with VirtualAlloc
-		VAddr MapHostMemory(VAddr StartingAddr, size_t Size, size_t VmaEnd, DWORD Permissions);
+		VAddr MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, uint32_t Alignment, VAddr HighestAddress = 0);
 		// constructs a vma
 		void ConstructVMA(VAddr Start, size_t Size, MemoryRegionType Type, VMAType VmaType, DWORD Perms = XBOX_PAGE_NOACCESS);
 		// destructs a vma

@@ -1115,27 +1115,32 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		// Initialize the memory manager
 		g_VMManager.Initialize(emulate_system, BootFlags);
 
-		// Commit the memory used by the xbe header
-		size_t HeaderSize = CxbxKrnl_Xbe->m_Header.dwSizeofHeaders;
-		VAddr XbeBase = XBE_IMAGE_BASE;
-		g_VMManager.XbAllocateVirtualMemory(&XbeBase, 0, &HeaderSize, XBOX_MEM_COMMIT, XBOX_PAGE_READWRITE);
+		// Reserve the xbe image memory
+		VAddr xbe_base = CxbxKrnl_Xbe->m_Header.dwBaseAddr;
+		size_t size = CxbxKrnl_Xbe->m_Header.dwSizeofImage;
+		g_VMManager.XbAllocateVirtualMemory(&xbe_base, 0, &size, XBOX_MEM_RESERVE, XBOX_PAGE_READWRITE);
 
+		// Commit the memory used by the xbe header
+		xbe_base = CxbxKrnl_Xbe->m_Header.dwBaseAddr;
+		size = CxbxKrnl_Xbe->m_Header.dwSizeofHeaders;
+		g_VMManager.XbAllocateVirtualMemory(&xbe_base, 0, &size, XBOX_MEM_COMMIT, XBOX_PAGE_READWRITE);
 
 		// Copy over loaded Xbe Headers to specified base address
-		memcpy((void*)CxbxKrnl_Xbe->m_Header.dwBaseAddr, &CxbxKrnl_Xbe->m_Header, sizeof(Xbe::Header));
-		memcpy((void*)(CxbxKrnl_Xbe->m_Header.dwBaseAddr + sizeof(Xbe::Header)), CxbxKrnl_Xbe->m_HeaderEx, CxbxKrnl_Xbe->m_ExSize);
+		XBOX_MEM_WRITE(CxbxKrnl_Xbe->m_Header.dwBaseAddr, sizeof(Xbe::Header), &CxbxKrnl_Xbe->m_Header);
+		XBOX_MEM_WRITE(CxbxKrnl_Xbe->m_Header.dwBaseAddr + sizeof(Xbe::Header), CxbxKrnl_Xbe->m_ExSize, CxbxKrnl_Xbe->m_HeaderEx);
 
 		// Load all sections marked as preload using the in-memory copy of the xbe header
 		xboxkrnl::PXBEIMAGE_SECTION sectionHeaders = (xboxkrnl::PXBEIMAGE_SECTION)CxbxKrnl_Xbe->m_Header.dwSectionHeadersAddr;
 		for (uint32_t i = 0; i < CxbxKrnl_Xbe->m_Header.dwSections; i++) {
-			if ((sectionHeaders[i].Flags & XBEIMAGE_SECTION_PRELOAD) != 0) {
-				NTSTATUS result = xboxkrnl::XeLoadSection(&sectionHeaders[i]);
+			if ((CxbxKrnl_Xbe->m_SectionHeader[i].dwFlags_value & XBEIMAGE_SECTION_PRELOAD) != 0) {
+				xboxkrnl::NTSTATUS result = xboxkrnl::XeLoadSection(sectionHeaders);
 				if (FAILED(result)) {
 					EmuLogInit(LOG_LEVEL::WARNING, "Failed to preload XBE section: %s", CxbxKrnl_Xbe->m_szSectionName[i]);
 				}
 			}
+			sectionHeaders++;
 		}
-
+#ifndef LLE_CPU
 		// We need to remember a few XbeHeader fields, so we can switch between a valid ExeHeader and XbeHeader :
 		StoreXbeImageHeader();
 
@@ -1161,6 +1166,7 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 				}
 			}
 		}
+#endif
 	}
 
 	// Decode kernel thunk table address :

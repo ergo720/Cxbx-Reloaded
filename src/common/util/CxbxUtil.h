@@ -33,6 +33,9 @@
 #include <type_traits>
 #include "std_extend.hpp" // for ARRAY_SIZE
 
+// Calculates the address of a member of a struct from a pointer to the struct and the name of the member
+#define address_of(base, type, field) reinterpret_cast<uint8_t *>(base) + offsetof(type, field)
+
 /* This is a linux struct for vectored I/O. See readv() and writev() */
 struct IoVec
 {

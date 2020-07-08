@@ -80,6 +80,14 @@ void Cpu::RamPhysWrite(xbaddr addr, size_t size, void *buffer)
 	std::memcpy(&m_cpu->cpu_ctx.ram[addr], buffer, size);
 }
 
+void Cpu::RamPhysZero(xbaddr addr, size_t size)
+{
+	// NOTE: contiguous addresses should have the highest bit masked
+	assert((addr + size <= m_ramsize));
+
+	std::memset(&m_cpu->cpu_ctx.ram[addr], 0, size);
+}
+
 std::vector<uint8_t> Cpu::MemRead(xbaddr addr, size_t size)
 {
 	try {

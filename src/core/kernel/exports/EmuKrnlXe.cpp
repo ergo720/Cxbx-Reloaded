@@ -73,33 +73,40 @@ XBSYSAPI EXPORTNUM(327) xboxkrnl::NTSTATUS NTAPI xboxkrnl::XeLoadSection
 	void* sectionData = CxbxKrnl_Xbe->FindSection(Section);
 	if (sectionData != nullptr) {
 		// If the reference count was zero, load the section
-		if (Section->SectionReferenceCount == 0) {
+		uint32_t SectionReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, SectionReferenceCount)), 4).data());
+		if (SectionReferenceCount == 0) {
 			// REMARK: Some titles have sections less than PAGE_SIZE, which will cause an overlap with the next section
 			// since both will have the same aligned starting address.
 			// Test case: Dead or Alive 3, section XGRPH has a size of 764 bytes
 			// XGRPH										DSOUND
 			// 1F18A0 + 2FC -> aligned_start = 1F1000		1F1BA0 -> aligned_start = 1F1000 <- collision
 
-			VAddr BaseAddress = (VAddr)Section->VirtualAddress;
-			size_t SectionSize = (VAddr)Section->VirtualSize;
-
-			ret = g_VMManager.XbAllocateVirtualMemory(&BaseAddress, 0, &SectionSize, XBOX_MEM_COMMIT, XBOX_PAGE_EXECUTE_READWRITE);
+			VAddr SectionAddress = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, VirtualAddress)), 4).data());
+			size_t SectionSize = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, VirtualSize)), 4).data());
+			VAddr SectionAddressCopy = SectionAddress;
+			ret = g_VMManager.XbAllocateVirtualMemory(&SectionAddress, 0, &SectionSize, XBOX_MEM_COMMIT, XBOX_PAGE_EXECUTE_READWRITE);
 			if (ret != STATUS_SUCCESS) {
 				RETURN(ret);
 			}
 
-			// Clear the memory the section requires
-			memset(Section->VirtualAddress, 0, Section->VirtualSize);
 			// Copy the section data
-			memcpy(Section->VirtualAddress, sectionData, Section->FileSize);
+			size_t FileSize = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, FileSize)), 4).data());
+			XBOX_MEM_WRITE(SectionAddressCopy, FileSize, sectionData);
 
 			// Increment the head/tail page reference counters
-			(*Section->HeadReferenceCount)++;
-			(*Section->TailReferenceCount)++;
+			uint32_t pHeadReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, HeadReferenceCount)), 4).data());
+			uint32_t pTailReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, TailReferenceCount)), 4).data());
+			uint16_t HeadReferenceCount = *reinterpret_cast<uint16_t *>(XBOX_MEM_READ(pHeadReferenceCount, 2).data());
+			uint16_t TailReferenceCount = *reinterpret_cast<uint16_t *>(XBOX_MEM_READ(pTailReferenceCount, 2).data());
+			HeadReferenceCount++;
+			TailReferenceCount++;
+			XBOX_MEM_WRITE(pHeadReferenceCount, 2, &HeadReferenceCount);
+			XBOX_MEM_WRITE(pTailReferenceCount, 2, &TailReferenceCount);
 		}
 
 		// Increment the reference count
-		Section->SectionReferenceCount++;
+		SectionReferenceCount++;
+		XBOX_MEM_WRITE(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, SectionReferenceCount)), 4, &SectionReferenceCount);
 	}
 	
 	RETURN(ret);
@@ -124,37 +131,44 @@ XBSYSAPI EXPORTNUM(328) xboxkrnl::NTSTATUS NTAPI xboxkrnl::XeUnloadSection
 	NTSTATUS ret = STATUS_INVALID_PARAMETER;
 
 	// If the section was loaded, process it
-	if (Section->SectionReferenceCount > 0) {
+	uint32_t SectionReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, SectionReferenceCount)), 4).data());
+	if (SectionReferenceCount > 0) {
 		// Decrement the reference count
-		Section->SectionReferenceCount -= 1;
+		SectionReferenceCount--;
 
 		// Free the section and the physical memory in use if necessary
-		if (Section->SectionReferenceCount == 0) {
-			memset(Section->VirtualAddress, 0, Section->VirtualSize);
+		if (SectionReferenceCount == 0) {
+			VAddr SectionAddress = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, VirtualAddress)), 4).data());
+			size_t SectionSize = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, VirtualSize)), 4).data());
+			XBOX_MEM_WRITE(SectionAddress, SectionSize, std::vector<uint8_t>(SectionSize, 0).data());
 
 			// REMARK: the following can be tested with Broken Sword - The Sleeping Dragon, RalliSport Challenge, ...
-
-			VAddr BaseAddress = (VAddr)Section->VirtualAddress;
-			VAddr EndingAddress = (VAddr)Section->VirtualAddress + Section->VirtualSize;
+			VAddr EndingAddress = SectionAddress + SectionSize;
 
 			// Decrement the head/tail page reference counters
-			(*Section->HeadReferenceCount)--;
-			(*Section->TailReferenceCount)--;
+			uint32_t pHeadReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, HeadReferenceCount)), 4).data());
+			uint32_t pTailReferenceCount = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(address_of(Section, XBEIMAGE_SECTION, TailReferenceCount)), 4).data());
+			uint16_t HeadReferenceCount = *reinterpret_cast<uint16_t *>(XBOX_MEM_READ(pHeadReferenceCount, 2).data());
+			uint16_t TailReferenceCount = *reinterpret_cast<uint16_t *>(XBOX_MEM_READ(pTailReferenceCount, 2).data());
+			HeadReferenceCount--;
+			TailReferenceCount--;
+			XBOX_MEM_WRITE(pHeadReferenceCount, 2, &HeadReferenceCount);
+			XBOX_MEM_WRITE(pTailReferenceCount, 2, &TailReferenceCount);
 
-			if ((*Section->TailReferenceCount) != 0)
+			if (TailReferenceCount != 0)
 			{
 				EndingAddress = ROUND_DOWN_4K(EndingAddress);
 			}
 
-			if ((*Section->HeadReferenceCount) != 0)
+			if (HeadReferenceCount != 0)
 			{
-				BaseAddress = ROUND_UP_4K(BaseAddress);
+				SectionAddress = ROUND_UP_4K(SectionAddress);
 			}
 
-			if (EndingAddress > BaseAddress)
+			if (EndingAddress > SectionAddress)
 			{
-				size_t RegionSize = EndingAddress - BaseAddress;
-				g_VMManager.XbFreeVirtualMemory(&BaseAddress, &RegionSize, XBOX_MEM_DECOMMIT);
+				size_t RegionSize = EndingAddress - SectionAddress;
+				g_VMManager.XbFreeVirtualMemory(&SectionAddress, &RegionSize, XBOX_MEM_DECOMMIT);
 			}
 		}
 

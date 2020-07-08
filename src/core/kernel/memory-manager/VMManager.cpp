@@ -176,10 +176,6 @@ void VMManager::Initialize(unsigned int SystemType, int BootFlags)
 	// Initialize the pool manager
 	g_PoolManager.InitializePool();
 
-	// Reserve the xbe image memory. Doing this now allows us to avoid calling XbAllocateVirtualMemory later
-	ConstructVMA(XBE_IMAGE_BASE, ROUND_UP_4K(CxbxKrnl_Xbe->m_Header.dwSizeofImage), UserRegion, ReservedVma, XBOX_PAGE_READWRITE);
-	m_VirtualMemoryBytesReserved += ROUND_UP_4K(CxbxKrnl_Xbe->m_Header.dwSizeofImage);
-
 	if (m_MmLayoutChihiro) {
 		printf("Page table for Chihiro arcade initialized!\n");
 	}
@@ -217,25 +213,25 @@ void VMManager::InitializeSystemAllocations()
 	PFN pfn;
 	PFN pfn_end;
 
-	// Construct the pfn's of the pages holding the pfn database
+	// Construct the allocation of the pages holding the pfn database
 	InitializePfnDatabase();
 
 
-	// Construct the pfn of the page used by D3D
+	// Construct the allocation of the page used by D3D
 	AllocateContiguousMemory(PAGE_SIZE, D3D_PHYSICAL_PAGE, D3D_PHYSICAL_PAGE + PAGE_SIZE - 1, 0, XBOX_PAGE_READWRITE);
 	PersistMemory(CONTIGUOUS_MEMORY_BASE, PAGE_SIZE, true);
 
 
-	// Construct the pfn of the page directory
+	// Construct the allocation of the page directory
 	AllocateContiguousMemory(PAGE_SIZE, PAGE_DIRECTORY_PHYSICAL_ADDRESS, PAGE_DIRECTORY_PHYSICAL_ADDRESS + PAGE_SIZE - 1, 0, XBOX_PAGE_READWRITE);
 	PersistMemory(CONTIGUOUS_MEMORY_BASE + PAGE_DIRECTORY_PHYSICAL_ADDRESS, PAGE_SIZE, true);
 
 
-	// Construct the pfn's of the kernel pages
+	// Construct the allocation of the kernel pages
 	AllocateContiguousMemory(KERNEL_SIZE, XBE_IMAGE_BASE, XBE_IMAGE_BASE + ROUND_UP_4K(KERNEL_SIZE) - 1, 0, XBOX_PAGE_READWRITE);
 	PersistMemory(CONTIGUOUS_MEMORY_BASE + XBE_IMAGE_BASE, KERNEL_SIZE, true);
 
-	// Construct the pfn's of the pages holding the nv2a instance memory
+	// Construct the allocation of the pages holding the nv2a instance memory
 	if (m_MmLayoutRetail || m_MmLayoutDebug) {
 		pfn = XBOX_INSTANCE_PHYSICAL_PAGE;
 		pfn_end = XBOX_INSTANCE_PHYSICAL_PAGE + NV2A_INSTANCE_PAGE_COUNT - 1;
@@ -1334,7 +1330,7 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 		LOG_FUNC_ARG(AllocationType)
 		LOG_FUNC_ARG(Protect)
 	LOG_FUNC_END;
-#if 0
+
 	MMPTE TempPte;
 	VAddr PointerPte;
 	VAddr EndingPte;
@@ -1403,7 +1399,7 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 
 			// On the Xbox, blocks reserved by NtAllocateVirtualMemory are 64K aligned and the size is rounded up on a 4K boundary.
 
-			AlignedCapturedBase = MapMemoryBlock(UserRegion, AlignedCapturedSize >> PAGE_SHIFT, MEM_RESERVE, false, MaxAllowedAddress);
+			AlignedCapturedBase = MapMemoryBlock(UserRegion, AlignedCapturedSize >> PAGE_SHIFT, X64KB, MaxAllowedAddress);
 
 			if (!AlignedCapturedBase) { status = STATUS_NO_MEMORY; goto Exit; }
 		}
@@ -1419,29 +1415,6 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 
 				status = STATUS_CONFLICTING_ADDRESSES;
 				goto Exit;
-			}
-
-			// Hack: check if the title is attempting to reserve in the region between the reserved xbe image memory up to XBE_MAX_VA.
-			// Once the memory placeholder is gone, this can be removed.
-			// Note: this will not work if the title attempts to reserve inside the placeholder with a size that makes the
-			// allocation exceed the end of the placeholder at XBE_MAX_VA (e.g.: Fable does this!) and it doesn't accept
-			// any other address but the requested one (e.g.: Project Zero 1 does this!). No title is known to do this, but it's
-			// teoretically possible...
-
-			if (AlignedCapturedBase < XBE_MAX_VA && AlignedCapturedBase >= ROUND_UP_4K(CxbxKrnl_Xbe->m_Header.dwSizeofImage) + XBE_IMAGE_BASE
-				&& AlignedCapturedBase + AlignedCapturedSize - 1 < XBE_MAX_VA)
-			{
-				// Don't do anything, ConstructVMA will be called below to track the allocation inside the placeholder
-			}
-			else {
-				if ((VAddr)VirtualAlloc((void*)AlignedCapturedBase, AlignedCapturedSize, MEM_RESERVE,
-					ConvertXboxToWinPermissions(PatchXboxPermissions(Protect)) & ~(PAGE_WRITECOMBINE | PAGE_NOCACHE)) != AlignedCapturedBase)
-				{
-					// An host allocation is already mapped there, report an error
-
-					status = STATUS_CONFLICTING_ADDRESSES;
-					goto Exit;
-				}
 			}
 		}
 
@@ -1502,10 +1475,32 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 
 	while (PointerPte <= EndingPte)
 	{
-		if (PointerPte->Default == 0) { PteNumber++; }
-		else if ((PointerPte->Default & PTE_VALID_PROTECTION_MASK) != TempPte.Default) { bUpdatePteProtections = true; }
+		// We must first check if the pde is valid or else we'll get a page fault if it isn't and we blindly try to read the ptes
+		if ((PointerPte == StartingPte) || IsPteOnPdeBoundary(PointerPte)) {
+			MMPTE Pde = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(GetPteAddress(PointerPte), 4).data());
+			if (Pde.Hardware.Valid == 0) {
+				// pde is invalid, add one page to commit the page table
+				PteNumber++;
 
-		PointerPte++;
+				// calulate the number of ptes we have to allocate in the PT to satisfy this allocation
+				VAddr next_page_pte = ROUND_UP_4K(PointerPte);
+				if (next_page_pte > EndingPte) {
+					PteNumber += (((EndingPte - PointerPte) / 4) + 1);
+				}
+				else {
+					PteNumber += ((next_page_pte - PointerPte) / 4);
+				}
+
+				PointerPte = next_page_pte;
+				continue;
+			}
+		}
+
+		MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+		if (Pte.Default == 0) { PteNumber++; }
+		else if ((Pte.Default & PTE_VALID_PROTECTION_MASK) != TempPte.Default) { bUpdatePteProtections = true; }
+
+		PointerPte += 4;
 	}
 
 	if (!IsMappable(PteNumber, true, m_MmLayoutDebug && m_bAllowNonDebuggerOnTop64MiB ? true : false))
@@ -1514,51 +1509,46 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 		goto Exit;
 	}
 
-	// Attempt to commit the requested range with VirtualAlloc *before* setting up and reserving the PT
-	// This allows an early-out in a failure scenario (Test Case: Star Wars Battlefront DVD Demo: LA-018 v1.02)
-    // We don't commit the requested range if it's within our placeholder, since that was already allocated earlier
-	if (AlignedCapturedBase >= XBE_MAX_VA)
-	{
-		if (!VirtualAlloc((void*)AlignedCapturedBase, AlignedCapturedSize, MEM_COMMIT,
-			(ConvertXboxToWinPermissions(PatchXboxPermissions(Protect))) & ~(PAGE_WRITECOMBINE | PAGE_NOCACHE)))
-		{
-			EmuLog(LOG_LEVEL::DEBUG, "%s: VirtualAlloc failed to commit the memory! The error was 0x%08X", __func__, GetLastError());
-			status = STATUS_NO_MEMORY;
-			goto Exit;
-		}
-	}
-
 	// Check if we have to construct the PT's for this allocation
 
-	if (!AllocatePT(AlignedCapturedSize, AlignedCapturedBase))
+	if (!AllocatePT(AlignedCapturedBase, AlignedCapturedSize))
 	{
 		status = STATUS_NO_MEMORY;
 		goto Exit;
 	}
 
-	// With VirtualAlloc we grab one page at a time to avoid fragmentation issues
-
 	BusyType = (Protect & (XBOX_PAGE_EXECUTE | XBOX_PAGE_EXECUTE_READ | XBOX_PAGE_EXECUTE_READWRITE
 		| XBOX_PAGE_EXECUTE_WRITECOPY)) ? ImageType : VirtualMemoryType;
 	PointerPte = StartingPte;
-	while (PointerPte <= EndingPte)
 	{
-		if (PointerPte->Default == 0)
-		{
-			RemoveFree(1, &TempPfn, 0, 0, m_MmLayoutDebug && !m_bAllowNonDebuggerOnTop64MiB ? XBOX_HIGHEST_PHYSICAL_PAGE : m_HighestPage);
-			WritePfn(TempPfn, TempPfn, PointerPte, BusyType);
-			WritePte(PointerPte, PointerPte, TempPte, TempPfn);
+		std::function<void(Cpu *, PFN)> zero_page_func;
+		if (AllocationType & XBOX_MEM_NOZERO) {
+			zero_page_func = [](Cpu *cpu, PFN pfn) {
+				return;
+			};
 		}
+		else {
+			zero_page_func = [](Cpu *cpu, PFN pfn) {
+				cpu->RamPhysZero(pfn << PAGE_SHIFT, PAGE_SIZE);
+			};
+		}
+		while (PointerPte <= EndingPte)
+		{
+			MMPTE Pte = *reinterpret_cast<PMMPTE>(XBOX_MEM_READ(PointerPte, 4).data());
+			if (Pte.Default == 0)
+			{
+				RemoveFree(1, &TempPfn, 0, 0, m_MmLayoutDebug && !m_bAllowNonDebuggerOnTop64MiB ? XBOX_HIGHEST_PHYSICAL_PAGE : m_HighestPage);
+				WritePte(PointerPte, PointerPte, TempPte, TempPfn);
+				XBOX_TLB_FLUSH(PointerPte, PointerPte);
+				WritePfn(TempPfn, TempPfn, PointerPte, BusyType);
+				zero_page_func(g_CPU, TempPfn);
+			}
 
-		PointerPte++;
+			PointerPte += 4;
+		}
 	}
 
-	// Because VirtualAlloc always zeros the memory for us, XBOX_MEM_NOZERO is still unsupported
-
-	if (AllocationType & XBOX_MEM_NOZERO) { EmuLog(LOG_LEVEL::DEBUG, "XBOX_MEM_NOZERO flag is not supported!"); }
-
 	// If some pte's were detected to have different permissions in the above check, we need to update those as well
-
 	if (bUpdatePteProtections)
 	{
 		VAddr TempAddr = AlignedCapturedBase;
@@ -1582,8 +1572,8 @@ xboxkrnl::NTSTATUS VMManager::XbAllocateVirtualMemory(VAddr* addr, ULONG ZeroBit
 	}
 
 	Unlock();
-#endif
-	RETURN(STATUS_NO_MEMORY);
+
+	RETURN(status);
 }
 
 xboxkrnl::NTSTATUS VMManager::XbFreeVirtualMemory(VAddr* addr, size_t* Size, DWORD FreeType)
@@ -2006,109 +1996,67 @@ xboxkrnl::NTSTATUS VMManager::XbVirtualMemoryStatistics(VAddr addr, xboxkrnl::PM
 	return STATUS_INVALID_PARAMETER;
 }
 
-VAddr VMManager::MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, DWORD Permissions, uint32_t Alignment, VAddr HighestAddress)
+VAddr VMManager::MapMemoryBlock(MemoryRegionType Type, PFN_COUNT PteNumber, uint32_t Alignment, VAddr HighestAddress)
 {
 	VAddr addr;
 	VMAIter it = m_MemoryRegionArray[Type].LastFree;
-	size_t Size = PteNumber << PAGE_SHIFT;
+	size_t size = PteNumber << PAGE_SHIFT;
 
 
 	VMAIter end_it = m_MemoryRegionArray[Type].RegionMap.end();
 
-	if (HighestAddress) // XbAllocateVirtualMemory specific
-	{
+	if (HighestAddress) { // XbAllocateVirtualMemory specific
 		end_it = std::next(GetVMAIterator(HighestAddress, Type));
 	}
 
 	while (it != end_it)
 	{
-		if (it->second.type != FreeVma) // already allocated by the VMManager
-		{
+		if (it->second.type != FreeVma) { // already allocated by the VMManager
 			++it;
 			continue;
 		}
 		addr = it->first;
-		if (!CHECK_ALIGNMENT(addr, Alignment)) { // free vma
+		if (!CHECK_ALIGNMENT(addr, Alignment)) { // align vma start to the requested alignment
 			addr = ROUND_UP(addr, Alignment);
 		}
 
-		if (Permissions == 0xFFFFFFFF) {
-			if (addr + Size - 1 < it->first + it->second.size) {
-				return addr;
-			}
-			++it;
-			continue;
-		}
-
 		size_t vma_end;
-		if (HighestAddress && (it->first + it->second.size > HighestAddress + 1)) { vma_end = HighestAddress + 1; }
-		else { vma_end = it->first + it->second.size; }
+		if (HighestAddress && (it->first + it->second.size - 1 > HighestAddress)) { vma_end = HighestAddress; }
+		else { vma_end = it->first + it->second.size - 1; }
+		if (addr + size - 1 > vma_end) { ++it; continue; }
 
-		addr = MapHostMemory(addr, Size, vma_end, Permissions);
-		if (addr) { return addr; }
-		++it;
+		return addr;
 	}
 
 	// If we are here, it means we reached the end of the memory region. In desperation, we also try to map it from the
 	// LastFree iterator and going backwards, since there could be holes created by deallocation operations...
-
 	VMAIter begin_it = m_MemoryRegionArray[Type].RegionMap.begin();
-
 	if (m_MemoryRegionArray[Type].LastFree == begin_it)
 	{
 		// We are already at the beginning of the map, so bail out immediately
-
 		EmuLog(LOG_LEVEL::WARNING, "Failed to map a memory block in the virtual region %d!", Type);
 		return NULL;
 	}
 
 	it = std::prev(m_MemoryRegionArray[Type].LastFree);
-
 	while (true)
 	{
 		if (it->second.type == FreeVma)
 		{
 			addr = it->first;
-
 			if (!CHECK_ALIGNMENT(addr, Alignment)) {
 				addr = ROUND_UP(addr, Alignment);
 			}
 
-			size_t vma_end = it->first + it->second.size;
-
-			if (Permissions == 0xFFFFFFFF) {
-				if (addr + Size - 1 < vma_end) {
-					return addr;
-				}
-				--it;
-				continue;
-			}
-
-			addr = MapHostMemory(addr, Size, vma_end, Permissions);
-			if (addr) { return addr; }
+			if (addr + size <= it->first + it->second.size) { return addr; }
 		}
 
 		if (it == begin_it) { break; }
 		--it;
 	}
 
-	// We have failed to map the block. This is likely because the virtual space is fragmented or there are too many
-	// host allocations in the memory region. Log this error and bail out
-
+	// We have failed to map the block. Log this error and bail out
 	EmuLog(LOG_LEVEL::WARNING, "Failed to map a memory block in the virtual region %d!", Type);
-
-	return NULL;
-}
-
-VAddr VMManager::MapHostMemory(VAddr StartingAddr, size_t Size, size_t VmaEnd, DWORD Permissions)
-{
-	for (; StartingAddr + Size - 1 < VmaEnd; StartingAddr += m_AllocationGranularity)
-	{
-		if ((VAddr)VirtualAlloc((void*)StartingAddr, Size, Permissions, PAGE_EXECUTE_READWRITE) == StartingAddr)
-		{
-			return StartingAddr;
-		}
-	}
 	return NULL;
 }
 
