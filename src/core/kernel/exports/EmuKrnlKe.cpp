@@ -1937,7 +1937,7 @@ XBSYSAPI EXPORTNUM(155) xboxkrnl::BOOLEAN NTAPI xboxkrnl::KeTestAlertThread
 // ******************************************************************
 // * 0x009C - KeTickCount
 // ******************************************************************
-XBSYSAPI EXPORTNUM(156) xboxkrnl::DWORD VOLATILE xboxkrnl::KeTickCount = 0;
+XBSYSAPI EXPORTNUM(156) xboxkrnl::DWORD xboxkrnl::KeTickCount = 0;
 
 // ******************************************************************
 // * 0x009D - KeTimeIncrement

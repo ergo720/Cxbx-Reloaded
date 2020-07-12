@@ -448,7 +448,7 @@ XBSYSAPI EXPORTNUM(258) xboxkrnl::VOID NTAPI xboxkrnl::PsTerminateSystemThread
 // ******************************************************************
 // * 0x0103 - PsThreadObjectType
 // ******************************************************************
-XBSYSAPI EXPORTNUM(259) xboxkrnl::OBJECT_TYPE VOLATILE xboxkrnl::PsThreadObjectType =
+XBSYSAPI EXPORTNUM(259) xboxkrnl::OBJECT_TYPE xboxkrnl::PsThreadObjectType =
 {
 	xboxkrnl::ExAllocatePoolWithTag,
 	xboxkrnl::ExFreePool,

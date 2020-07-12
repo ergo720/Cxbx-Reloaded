@@ -75,15 +75,16 @@ class Cpu {
 public:
 	void Init(size_t ramsize);
 	std::vector<uint8_t> RamPhysRead(xbaddr addr, size_t size);
-	void RamPhysWrite(xbaddr addr, size_t size, void *buffer);
+	void RamPhysWrite(xbaddr addr, size_t size, const void *buffer);
 	void RamPhysZero(xbaddr addr, size_t size);
 	std::vector<uint8_t> MemRead(xbaddr addr, size_t size);
-	void MemWrite(xbaddr addr, size_t size, void *buffer);
+	void MemWrite(xbaddr addr, size_t size, const void *buffer);
 	template <typename T> T IoRead(xbport port);
 	template <typename T> void IoWrite(xbport port, T value);
 	template <auto reg, auto sel = SEG_SEL> uint32_t ReadReg32();
 	template <auto reg, auto sel = SEG_SEL> void WriteReg32(uint32_t value);
 	void TlbFlush(xbaddr addr_s, xbaddr addr_e);
+	void InstallHook(xbaddr addr, const hook *hook_info);
 
 private:
 	cpu_t *m_cpu;
@@ -91,6 +92,7 @@ private:
 };
 
 extern Cpu *g_CPU;
+extern const hook CxbxKrnl_KernelHookTable[];
 
 template <typename T>
 T Cpu::IoRead(xbport port)

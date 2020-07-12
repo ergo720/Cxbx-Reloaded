@@ -76,6 +76,25 @@ extern "C" {
 
 #define NV2A_INSTANCE_PAGE_COUNT            16
 
+// Kernel variables / macros
+#define KERNEL_EXPORTS_NB                   379
+
+typedef struct DUMMY_KERNEL
+{
+	IMAGE_DOS_HEADER DosHeader;
+	DWORD Signature;
+	IMAGE_FILE_HEADER FileHeader;
+	IMAGE_SECTION_HEADER SectionHeader;
+	uint32_t KrnlThunk[KERNEL_EXPORTS_NB];
+	uint8_t KrnlVariables[1334];
+} *PDUMMY_KERNEL;
+
+// Define virtual base and alternate virtual base of kernel
+#define XBOX_KERNEL_BASE                    (PHYSICAL_MAP_BASE + XBE_IMAGE_BASE)
+#define KERNEL_PHYSICAL_ADDRESS             XBE_IMAGE_BASE // = 0x10000
+#define KERNEL_SIZE                         sizeof(DUMMY_KERNEL)
+#define KERNEL_STACK_SIZE                   12288 // 0x03000, needed by PsCreateSystemThreadEx, however the current implementation doesn't use it
+
 // For now, virtual addresses are somewhat limited, as we use
 // these soley for loading XBE sections. The largest that we
 // know of, is "BLiNX: the time sweeper", which has a section
@@ -151,10 +170,10 @@ bool HandleFirstLaunch();
 void CxbxKrnlEmulate(unsigned int system, blocks_reserved_t blocks_reserved);
 
 /*! initialize emulation */
-__declspec(noreturn) void CxbxKrnlInit(void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32_t XbeHeaderSize, void (*Entry)(), int BootFlags);
+[[noreturn]] void CxbxKrnlInit(void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32_t XbeHeaderSize, void (*Entry)(), int BootFlags);
 
 /*! cleanup emulation */
-__declspec(noreturn) void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const char *szErrorMessage, ...);
+[[noreturn]] void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const char *szErrorMessage, ...);
 
 #define CxbxKrnlCleanup(fmt, ...) CxbxKrnlCleanupEx(LOG_PREFIX, fmt, ##__VA_ARGS__)
 
@@ -177,7 +196,7 @@ void CxbxKrnlPrintUEM(ULONG ErrorCode);
 void CxbxPrintUEMInfo(ULONG ErrorCode);
 
 /*! terminate the calling thread */
-__declspec(noreturn) void CxbxKrnlTerminateThread();
+[[noreturn]] void CxbxKrnlTerminateThread();
 
 /*! kernel panic (trap for unimplemented kernel functions) */
 void CxbxKrnlPanic();
@@ -196,9 +215,6 @@ void CxbxUnlockFilePath();
 bool CxbxExec(bool useDebugger, HANDLE* hProcess, bool requestHandleProcess);
 
 bool CxbxIsElevated();
-
-/*! kernel thunk table */
-extern uint32_t CxbxKrnl_KernelThunkTable[379];
 
 extern bool g_bIsWine;
 

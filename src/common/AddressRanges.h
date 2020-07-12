@@ -137,12 +137,6 @@ inline constexpr uint32_t FLASH_DEVICE4_END  =     (FLASH_DEVICE4_BASE - 1 + FLA
 #define PAGE_DIRECTORY_BASE                 0xC0300000
 #define NV2A_INIT_VECTOR                    0xFF000008
 
-// Define virtual base and alternate virtual base of kernel
-#define XBOX_KERNEL_BASE                    (PHYSICAL_MAP_BASE + XBE_IMAGE_BASE)
-#define KERNEL_PHYSICAL_ADDRESS             XBE_IMAGE_BASE // = 0x10000
-#define KERNEL_SIZE                         sizeof(DUMMY_KERNEL)
-#define KERNEL_STACK_SIZE                   12288 // 0x03000, needed by PsCreateSystemThreadEx, however the current implementation doesn't use it
-
 // Miscellaneous memory variables
 // Xbox pages are (1 << 12) = 0x00001000 = 4096 bytes in size. Large pages are 4 MiB instead
 // NOTE: PAGE_SIZE is also defined in xfile.h (oxdk) and linux_wrapper.h (oxdk)

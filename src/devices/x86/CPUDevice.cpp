@@ -72,7 +72,7 @@ std::vector<uint8_t> Cpu::RamPhysRead(xbaddr addr, size_t size)
 	return buffer;
 }
 
-void Cpu::RamPhysWrite(xbaddr addr, size_t size, void *buffer)
+void Cpu::RamPhysWrite(xbaddr addr, size_t size, const void *buffer)
 {
 	// NOTE: contiguous addresses should have the highest bit masked
 	assert((addr + size <= m_ramsize));
@@ -98,7 +98,7 @@ std::vector<uint8_t> Cpu::MemRead(xbaddr addr, size_t size)
 	}
 }
 
-void Cpu::MemWrite(xbaddr addr, size_t size, void *buffer)
+void Cpu::MemWrite(xbaddr addr, size_t size, const void *buffer)
 {
 	if (!LIB86CPU_CHECK_SUCCESS(mem_write_block(m_cpu, addr, size, buffer))) {
 		CxbxKrnlCleanup("Page fault while trying to write at address %#010x with size %zu\n", addr, size);
@@ -108,4 +108,11 @@ void Cpu::MemWrite(xbaddr addr, size_t size, void *buffer)
 void Cpu::TlbFlush(xbaddr addr_s, xbaddr addr_e)
 {
 	tlb_invalidate(m_cpu, addr_s, addr_e);
+}
+
+void Cpu::InstallHook(xbaddr addr, const hook *hook_info)
+{
+	if (!LIB86CPU_CHECK_SUCCESS(hook_add(m_cpu, addr, std::unique_ptr<hook>(new hook(*hook_info))))) {
+		CxbxKrnlCleanup("Failed to install hook for function %s!\n", hook_info->info.name.c_str());
+	}
 }

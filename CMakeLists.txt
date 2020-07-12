@@ -208,6 +208,7 @@ file (GLOB CXBXR_HEADER_EMU
  "${CXBXR_ROOT_DIR}/src/devices/video/vga.h"
  "${CXBXR_ROOT_DIR}/src/devices/x86/EmuX86.h"
  "${CXBXR_ROOT_DIR}/src/devices/x86/CPUDevice.cpp"
+ "${CXBXR_ROOT_DIR}/src/devices/x86/CPUKrnlHooks.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/Xbox.h"
 )
 
@@ -329,7 +330,6 @@ file (GLOB CXBXR_SOURCE_EMU
  "${CXBXR_ROOT_DIR}/src/core/kernel/exports/EmuKrnlXbox.cpp"
  "${CXBXR_ROOT_DIR}/src/core/kernel/exports/EmuKrnlXc.cpp"
  "${CXBXR_ROOT_DIR}/src/core/kernel/exports/EmuKrnlXe.cpp"
- "${CXBXR_ROOT_DIR}/src/core/kernel/exports/KernelThunk.cpp"
  "${CXBXR_ROOT_DIR}/src/core/kernel/memory-manager/PhysicalMemory.cpp"
  "${CXBXR_ROOT_DIR}/src/core/kernel/memory-manager/PoolManager.cpp"
  "${CXBXR_ROOT_DIR}/src/core/kernel/memory-manager/VMManager.cpp"
@@ -380,6 +380,7 @@ file (GLOB CXBXR_SOURCE_EMU
  "${CXBXR_ROOT_DIR}/src/devices/video/swizzle.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/x86/EmuX86.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/x86/CPUDevice.cpp"
+ "${CXBXR_ROOT_DIR}/src/devices/x86/CPUKrnlHooks.cpp"
  "${CXBXR_ROOT_DIR}/src/devices/Xbox.cpp"
  # Temporary usage for need ReserveAddressRanges func with cxbx.exe's emulation.
  "${CXBXR_ROOT_DIR}/src/common/ReserveAddressRanges.cpp"

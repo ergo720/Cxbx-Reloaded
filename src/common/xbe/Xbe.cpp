@@ -73,6 +73,12 @@ Xbe::Xbe(const char *x_szFilename, bool bFromGUI)
 		// Note that GetHwnd(), CxbxKrnl_hEmuParent and HalReturnToFirmware are all not suitable here for various reasons 
 		if (XbeName.compare(std::string("xboxdash.xbe")) == 0 && !bFromGUI)
 		{
+            // Report which xbe could not be found
+            SetFatalError(std::string("Could not open the Xbe file ") + XbeName);
+            return;
+
+            // xboxkrnl::LaunchDataPage is stll not initialized at this point so we can't use it
+#if 0
 			// The dashboard could not be found on partition2. This is a fatal error on the Xbox so we display the UEM. The
 			// error code is different if we have a launch data page
 
@@ -89,12 +95,7 @@ Xbe::Xbe(const char *x_szFilename, bool bFromGUI)
 			CxbxKrnlPrintUEM(FatalErrorCode); // won't return
 
 			// TODO: FATAL_ERROR_XBE_DASH_X2_PASS (requires DVD drive authentication emulation...)
-		}
-		else
-		{
-			// Report which xbe could not be found
-			SetFatalError(std::string("Could not open the Xbe file ") + XbeName);
-			return;
+#endif
 		}
     }
 

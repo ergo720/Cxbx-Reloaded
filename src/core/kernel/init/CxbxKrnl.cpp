@@ -123,6 +123,455 @@ ULONG g_CxbxFatalErrorCode = FATAL_ERROR_NONE;
 // Define function located in EmuXApi so we can call it from here
 void SetupXboxDeviceTypes();
 
+static constexpr xbaddr KERNEL_THUNK_ADDRESS = XBOX_KERNEL_BASE + offsetof(DUMMY_KERNEL, KrnlThunk);
+static constexpr xbaddr KERNEL_VARIABLES_ADDRESS = XBOX_KERNEL_BASE + offsetof(DUMMY_KERNEL, KrnlVariables);
+
+static constexpr size_t KernelVarsSize[34] =
+{
+	sizeof(xboxkrnl::ExEventObjectType),
+	sizeof(xboxkrnl::ExMutantObjectType),
+	sizeof(xboxkrnl::ExSemaphoreObjectType),
+	sizeof(xboxkrnl::ExTimerObjectType),
+	sizeof(xboxkrnl::HalDiskCachePartitionCount),
+	sizeof(xboxkrnl::HalDiskModelNumber),
+	sizeof(xboxkrnl::HalDiskSerialNumber),
+	sizeof(xboxkrnl::IoCompletionObjectType),
+	sizeof(xboxkrnl::IoDeviceObjectType),
+	sizeof(xboxkrnl::IoFileObjectType),
+	sizeof(xboxkrnl::KdDebuggerEnabled),
+	sizeof(xboxkrnl::KdDebuggerNotPresent),
+	sizeof(xboxkrnl::MmGlobalData),
+	sizeof(xboxkrnl::KeInterruptTime),
+	sizeof(xboxkrnl::KeSystemTime),
+	sizeof(xboxkrnl::KeTickCount),
+	sizeof(xboxkrnl::KeTimeIncrement),
+	sizeof(xboxkrnl::KiBugCheckData),
+	sizeof(xboxkrnl::LaunchDataPage),
+	sizeof(xboxkrnl::ObDirectoryObjectType),
+	sizeof(xboxkrnl::ObpObjectHandleTable),
+	sizeof(xboxkrnl::ObSymbolicLinkObjectType),
+	sizeof(xboxkrnl::PsThreadObjectType),
+	sizeof(xboxkrnl::XboxEEPROMKey),
+	sizeof(xboxkrnl::XboxHardwareInfo),
+	sizeof(xboxkrnl::XboxHDKey),
+	sizeof(xboxkrnl::XboxKrnlVersion),
+	sizeof(xboxkrnl::XboxSignatureKey),
+	sizeof(xboxkrnl::XeImageFileName),
+	sizeof(xboxkrnl::XboxLANKey),
+	sizeof(xboxkrnl::XboxAlternateSignatureKeys),
+	sizeof(xboxkrnl::XePublicKeyData),
+	sizeof(xboxkrnl::HalBootSMCVideoMode),
+	sizeof(xboxkrnl::IdexChannelObject),
+};
+
+static constexpr xbaddr calc_krnl_var_addr(const int idx)
+{
+	uint32_t var_offset = 0;
+
+	for (int i = 0; i < idx; i++) {
+		var_offset += KernelVarsSize[i];
+	}
+
+	return KERNEL_VARIABLES_ADDRESS + var_offset;
+}
+
+static constexpr xbaddr calc_krnl_func_addr(const int idx)
+{
+	return KERNEL_THUNK_ADDRESS + idx * 4;
+}
+
+#define FUNC // kernel function
+#define VARIABLE // kernel variable
+
+#define DEVKIT // developer kit only functions
+#define PROFILING // private kernel profiling functions
+// A.k.a. _XBOX_ENABLE_PROFILING
+
+// kernel thunk table
+static constexpr xbaddr CxbxKrnl_KernelThunkTable[KERNEL_EXPORTS_NB] =
+{
+	(xbaddr)xbnullptr,           // "Undefined", this function doesn't exist    0x0000 (0)
+	calc_krnl_func_addr(1),      // FUNC(AvGetSavedDataAddress),                0x0001 (1)
+	calc_krnl_func_addr(2),      // FUNC(AvSendTVEncoderOption),                0x0002 (2)
+	calc_krnl_func_addr(3),      // FUNC(AvSetDisplayMode),                     0x0003 (3)
+	calc_krnl_func_addr(4),      // FUNC(AvSetSavedDataAddress),                0x0004 (4)
+	calc_krnl_func_addr(5),      // FUNC(DbgBreakPoint),                        0x0005 (5)
+	calc_krnl_func_addr(6),      // FUNC(DbgBreakPointWithStatus),              0x0006 (6)
+	calc_krnl_func_addr(7),      // FUNC(DbgLoadImageSymbols),                  0x0007 (7) DEVKIT
+	calc_krnl_func_addr(8),      // FUNC(DbgPrint),                             0x0008 (8)
+	calc_krnl_func_addr(9),      // FUNC(HalReadSMCTrayState),                  0x0009 (9)
+	calc_krnl_func_addr(10),     // FUNC(DbgPrompt),                            0x000A (10)
+	calc_krnl_func_addr(11),     // FUNC(DbgUnLoadImageSymbols),                0x000B (11) DEVKIT
+	calc_krnl_func_addr(12),     // FUNC(ExAcquireReadWriteLockExclusive)       0x000C (12)
+	calc_krnl_func_addr(13),     // FUNC(ExAcquireReadWriteLockShared),         0x000D (13)
+	calc_krnl_func_addr(14),     // FUNC(ExAllocatePool),                       0x000E (14)
+	calc_krnl_func_addr(15),     // FUNC(ExAllocatePoolWithTag),                0x000F (15)
+	calc_krnl_var_addr(0),       // VARIABLE(&ExEventObjectType),               0x0010 (16)
+	calc_krnl_func_addr(17),     // FUNC(ExFreePool),                           0x0011 (17)
+	calc_krnl_func_addr(18),     // FUNC(ExInitializeReadWriteLock),            0x0012 (18)
+	calc_krnl_func_addr(19),     // FUNC(ExInterlockedAddLargeInteger),         0x0013 (19)
+	calc_krnl_func_addr(20),     // FUNC(ExInterlockedAddLargeStatistic),       0x0014 (20)
+	calc_krnl_func_addr(21),     // FUNC(ExInterlockedCompareExchange64),       0x0015 (21)
+	calc_krnl_var_addr(1),       // VARIABLE(&ExMutantObjectType),              0x0016 (22)
+	calc_krnl_func_addr(23),     // FUNC(ExQueryPoolBlockSize),                 0x0017 (23)
+	calc_krnl_func_addr(24),     // FUNC(ExQueryNonVolatileSetting),            0x0018 (24)
+	calc_krnl_func_addr(25),     // FUNC(ExReadWriteRefurbInfo),                0x0019 (25)
+	calc_krnl_func_addr(26),     // FUNC(ExRaiseException),                     0x001A (26)
+	calc_krnl_func_addr(27),     // FUNC(ExRaiseStatus),                        0x001B (27)
+	calc_krnl_func_addr(28),     // FUNC(ExReleaseReadWriteLock),               0x001C (28)
+	calc_krnl_func_addr(29),     // FUNC(ExSaveNonVolatileSetting),             0x001D (29)
+	calc_krnl_var_addr(2),       // VARIABLE(ExSemaphoreObjectType),            0x001E (30)
+	calc_krnl_var_addr(3),       // VARIABLE(ExTimerObjectType),                0x001F (31)
+	calc_krnl_func_addr(32),     // FUNC(ExfInterlockedInsertHeadList),         0x0020 (32)
+	calc_krnl_func_addr(33),     // FUNC(ExfInterlockedInsertTailList),         0x0021 (33)
+	calc_krnl_func_addr(34),     // FUNC(ExfInterlockedRemoveHeadList),         0x0022 (34)
+	calc_krnl_func_addr(35),     // FUNC(FscGetCacheSize),                      0x0023 (35)
+	calc_krnl_func_addr(36),     // FUNC(FscInvalidateIdleBlocks),              0x0024 (36)
+	calc_krnl_func_addr(37),     // FUNC(FscSetCacheSize),                      0x0025 (37)
+	calc_krnl_func_addr(38),     // FUNC(HalClearSoftwareInterrupt),            0x0026 (38)
+	calc_krnl_func_addr(39),     // FUNC(HalDisableSystemInterrupt),            0x0027 (39)
+	calc_krnl_var_addr(4),       // VARIABLE(HalDiskCachePartitionCount),       0x0028 (40)  A.k.a. "IdexDiskPartitionPrefixBuffer"
+	calc_krnl_var_addr(5),       // VARIABLE(HalDiskModelNumber),               0x0029 (41)
+	calc_krnl_var_addr(6),       // VARIABLE(HalDiskSerialNumber),              0x002A (42)
+	calc_krnl_func_addr(43),     // FUNC(HalEnableSystemInterrupt),             0x002B (43)
+	calc_krnl_func_addr(44),     // FUNC(HalGetInterruptVector),                0x002C (44)
+	calc_krnl_func_addr(45),     // FUNC(HalReadSMBusValue),                    0x002D (45)
+	calc_krnl_func_addr(46),     // FUNC(HalReadWritePCISpace),                 0x002E (46)
+	calc_krnl_func_addr(47),     // FUNC(HalRegisterShutdownNotification),      0x002F (47)
+	calc_krnl_func_addr(48),     // FUNC(HalRequestSoftwareInterrupt),          0x0030 (48)
+	calc_krnl_func_addr(49),     // FUNC(HalReturnToFirmware),                  0x0031 (49)
+	calc_krnl_func_addr(50),     // FUNC(HalWriteSMBusValue),                   0x0032 (50)
+	calc_krnl_func_addr(51),     // FUNC(KRNL(InterlockedCompareExchange)),     0x0033 (51)
+	calc_krnl_func_addr(52),     // FUNC(KRNL(InterlockedDecrement)),           0x0034 (52)
+	calc_krnl_func_addr(53),     // FUNC(KRNL(InterlockedIncrement)),           0x0035 (53)
+	calc_krnl_func_addr(54),     // FUNC(KRNL(InterlockedExchange)),            0x0036 (54)
+	calc_krnl_func_addr(55),     // FUNC(KRNL(InterlockedExchangeAdd)),         0x0037 (55)
+	calc_krnl_func_addr(56),     // FUNC(KRNL(InterlockedFlushSList)),          0x0038 (56)
+	calc_krnl_func_addr(57),     // FUNC(KRNL(InterlockedPopEntrySList)),       0x0039 (57)
+	calc_krnl_func_addr(58),     // FUNC(KRNL(InterlockedPushEntrySList)),      0x003A (58)
+	calc_krnl_func_addr(59),     // FUNC(IoAllocateIrp),                        0x003B (59)
+	calc_krnl_func_addr(60),     // FUNC(IoBuildAsynchronousFsdRequest),        0x003C (60)
+	calc_krnl_func_addr(61),     // FUNC(IoBuildDeviceIoControlRequest),        0x003D (61)
+	calc_krnl_func_addr(62),     // FUNC(IoBuildSynchronousFsdRequest),         0x003E (62)
+	calc_krnl_func_addr(63),     // FUNC(IoCheckShareAccess),                   0x003F (63)
+	calc_krnl_var_addr(7),       // VARIABLE(IoCompletionObjectType),           0x0040 (64)
+	calc_krnl_func_addr(65),     // FUNC(IoCreateDevice),                       0x0041 (65)
+	calc_krnl_func_addr(66),     // FUNC(IoCreateFile),                         0x0042 (66)
+	calc_krnl_func_addr(67),     // FUNC(IoCreateSymbolicLink),                 0x0043 (67)
+	calc_krnl_func_addr(68),     // FUNC(IoDeleteDevice),                       0x0044 (68)
+	calc_krnl_func_addr(69),     // FUNC(IoDeleteSymbolicLink),                 0x0045 (69)
+	calc_krnl_var_addr(8),       // VARIABLE(IoDeviceObjectType),               0x0046 (70)
+	calc_krnl_var_addr(9),       // VARIABLE(IoFileObjectType),                 0x0047 (71)
+	calc_krnl_func_addr(72),     // FUNC(IoFreeIrp),                            0x0048 (72)
+	calc_krnl_func_addr(73),     // FUNC(IoInitializeIrp),                      0x0049 (73)
+	calc_krnl_func_addr(74),     // FUNC(IoInvalidDeviceRequest),               0x004A (74)
+	calc_krnl_func_addr(75),     // FUNC(IoQueryFileInformation),               0x004B (75)
+	calc_krnl_func_addr(76),     // FUNC(IoQueryVolumeInformation),             0x004C (76)
+	calc_krnl_func_addr(77),     // FUNC(IoQueueThreadIrp),                     0x004D (77)
+	calc_krnl_func_addr(78),     // FUNC(IoRemoveShareAccess),                  0x004E (78)
+	calc_krnl_func_addr(79),     // FUNC(IoSetIoCompletion),                    0x004F (79)
+	calc_krnl_func_addr(80),     // FUNC(IoSetShareAccess),                     0x0050 (80)
+	calc_krnl_func_addr(81),     // FUNC(IoStartNextPacket),                    0x0051 (81)
+	calc_krnl_func_addr(82),     // FUNC(IoStartNextPacketByKey),               0x0052 (82)
+	calc_krnl_func_addr(83),     // FUNC(IoStartPacket),                        0x0053 (83)
+	calc_krnl_func_addr(84),     // FUNC(IoSynchronousDeviceIoControlRequest),  0x0054 (84)
+	calc_krnl_func_addr(85),     // FUNC(IoSynchronousFsdRequest),              0x0055 (85)
+	calc_krnl_func_addr(86),     // FUNC(IofCallDriver),                        0x0056 (86)
+	calc_krnl_func_addr(87),     // FUNC(IofCompleteRequest),                   0x0057 (87)
+	calc_krnl_var_addr(10),      // VARIABLE(KdDebuggerEnabled),                0x0058 (88)
+	calc_krnl_var_addr(11),      // VARIABLE(KdDebuggerNotPresent),             0x0059 (89)
+	calc_krnl_func_addr(90),     // FUNC(IoDismountVolume),                     0x005A (90)
+	calc_krnl_func_addr(91),     // FUNC(IoDismountVolumeByName),               0x005B (91)
+	calc_krnl_func_addr(92),     // FUNC(KeAlertResumeThread),                  0x005C (92)
+	calc_krnl_func_addr(93),     // FUNC(KeAlertThread),                        0x005D (93)
+	calc_krnl_func_addr(94),     // FUNC(KeBoostPriorityThread),                0x005E (94)
+	calc_krnl_func_addr(95),     // FUNC(KeBugCheck),                           0x005F (95)
+	calc_krnl_func_addr(96),     // FUNC(KeBugCheckEx),                         0x0060 (96)
+	calc_krnl_func_addr(97),     // FUNC(KeCancelTimer),                        0x0061 (97)
+	calc_krnl_func_addr(98),     // FUNC(KeConnectInterrupt),                   0x0062 (98)
+	calc_krnl_func_addr(99),     // FUNC(KeDelayExecutionThread),               0x0063 (99)
+	calc_krnl_func_addr(100),    // FUNC(KeDisconnectInterrupt),                0x0064 (100)
+	calc_krnl_func_addr(101),    // FUNC(KeEnterCriticalRegion),                0x0065 (101)
+	calc_krnl_var_addr(12),      // VARIABLE(MmGlobalData),                     0x0066 (102)
+	calc_krnl_func_addr(103),    // FUNC(KeGetCurrentIrql),                     0x0067 (103)
+	calc_krnl_func_addr(104),    // FUNC(KeGetCurrentThread),                   0x0068 (104)
+	calc_krnl_func_addr(105),    // FUNC(KeInitializeApc),                      0x0069 (105)
+	calc_krnl_func_addr(106),    // FUNC(KeInitializeDeviceQueue),              0x006A (106)
+	calc_krnl_func_addr(107),    // FUNC(KeInitializeDpc),                      0x006B (107)
+	calc_krnl_func_addr(108),    // FUNC(KeInitializeEvent),                    0x006C (108)
+	calc_krnl_func_addr(109),    // FUNC(KeInitializeInterrupt),                0x006D (109)
+	calc_krnl_func_addr(110),    // FUNC(KeInitializeMutant),                   0x006E (110)
+	calc_krnl_func_addr(111),    // FUNC(KeInitializeQueue),                    0x006F (111)
+	calc_krnl_func_addr(112),    // FUNC(KeInitializeSemaphore),                0x0070 (112)
+	calc_krnl_func_addr(113),    // FUNC(KeInitializeTimerEx),                  0x0071 (113)
+	calc_krnl_func_addr(114),    // FUNC(KeInsertByKeyDeviceQueue),             0x0072 (114)
+	calc_krnl_func_addr(115),    // FUNC(KeInsertDeviceQueue),                  0x0073 (115)
+	calc_krnl_func_addr(116),    // FUNC(KeInsertHeadQueue),                    0x0074 (116)
+	calc_krnl_func_addr(117),    // FUNC(KeInsertQueue),                        0x0075 (117)
+	calc_krnl_func_addr(118),    // FUNC(KeInsertQueueApc),                     0x0076 (118)
+	calc_krnl_func_addr(119),    // FUNC(KeInsertQueueDpc),                     0x0077 (119)
+	calc_krnl_var_addr(13),      // VARIABLE(KeInterruptTime),                  0x0078 (120) KeInterruptTime
+	calc_krnl_func_addr(121),    // FUNC(KeIsExecutingDpc),                     0x0079 (121)
+	calc_krnl_func_addr(122),    // FUNC(KeLeaveCriticalRegion),                0x007A (122)
+	calc_krnl_func_addr(123),    // FUNC(KePulseEvent),                         0x007B (123)
+	calc_krnl_func_addr(124),    // FUNC(KeQueryBasePriorityThread),            0x007C (124)
+	calc_krnl_func_addr(125),    // FUNC(KeQueryInterruptTime),                 0x007D (125)
+	calc_krnl_func_addr(126),    // FUNC(KeQueryPerformanceCounter),            0x007E (126)
+	calc_krnl_func_addr(127),    // FUNC(KeQueryPerformanceFrequency),          0x007F (127)
+	calc_krnl_func_addr(128),    // FUNC(KeQuerySystemTime),                    0x0080 (128)
+	calc_krnl_func_addr(129),    // FUNC(KeRaiseIrqlToDpcLevel),                0x0081 (129)
+	calc_krnl_func_addr(130),    // FUNC(KeRaiseIrqlToSynchLevel),              0x0082 (130)
+	calc_krnl_func_addr(131),    // FUNC(KeReleaseMutant),                      0x0083 (131)
+	calc_krnl_func_addr(132),    // FUNC(KeReleaseSemaphore),                   0x0084 (132)
+	calc_krnl_func_addr(133),    // FUNC(KeRemoveByKeyDeviceQueue),             0x0085 (133)
+	calc_krnl_func_addr(134),    // FUNC(KeRemoveDeviceQueue),                  0x0086 (134)
+	calc_krnl_func_addr(135),    // FUNC(KeRemoveEntryDeviceQueue),             0x0087 (135)
+	calc_krnl_func_addr(136),    // FUNC(KeRemoveQueue),                        0x0088 (136)
+	calc_krnl_func_addr(137),    // FUNC(KeRemoveQueueDpc),                     0x0089 (137)
+	calc_krnl_func_addr(138),    // FUNC(KeResetEvent),                         0x008A (138)
+	calc_krnl_func_addr(139),    // FUNC(KeRestoreFloatingPointState),          0x008B (139)
+	calc_krnl_func_addr(140),    // FUNC(KeResumeThread),                       0x008C (140)
+	calc_krnl_func_addr(141),    // FUNC(KeRundownQueue),                       0x008D (141)
+	calc_krnl_func_addr(142),    // FUNC(KeSaveFloatingPointState),             0x008E (142)
+	calc_krnl_func_addr(143),    // FUNC(KeSetBasePriorityThread),              0x008F (143)
+	calc_krnl_func_addr(144),    // FUNC(KeSetDisableBoostThread),              0x0090 (144)
+	calc_krnl_func_addr(145),    // FUNC(KeSetEvent),                           0x0091 (145)
+	calc_krnl_func_addr(146),    // FUNC(KeSetEventBoostPriority),              0x0092 (146)
+	calc_krnl_func_addr(147),    // FUNC(KeSetPriorityProcess),                 0x0093 (147)
+	calc_krnl_func_addr(148),    // FUNC(KeSetPriorityThread),                  0x0094 (148)
+	calc_krnl_func_addr(149),    // FUNC(KeSetTimer),                           0x0095 (149)
+	calc_krnl_func_addr(150),    // FUNC(KeSetTimerEx),                         0x0096 (150)
+	calc_krnl_func_addr(151),    // FUNC(KeStallExecutionProcessor),            0x0097 (151)
+	calc_krnl_func_addr(152),    // FUNC(KeSuspendThread),                      0x0098 (152)
+	calc_krnl_func_addr(153),    // FUNC(KeSynchronizeExecution),               0x0099 (153)
+	calc_krnl_var_addr(14),      // VARIABLE(KeSystemTime),                     0x009A (154) KeSystemTime
+	calc_krnl_func_addr(155),    // FUNC(KeTestAlertThread),                    0x009B (155)
+	calc_krnl_var_addr(15),      // VARIABLE(KeTickCount),                      0x009C (156)
+	calc_krnl_var_addr(16),      // VARIABLE(KeTimeIncrement),                  0x009D (157)
+	calc_krnl_func_addr(158),    // FUNC(KeWaitForMultipleObjects),             0x009E (158)
+	calc_krnl_func_addr(159),    // FUNC(KeWaitForSingleObject),                0x009F (159)
+	calc_krnl_func_addr(160),    // FUNC(KfRaiseIrql),                          0x00A0 (160)
+	calc_krnl_func_addr(161),    // FUNC(KfLowerIrql),                          0x00A1 (161)
+	calc_krnl_var_addr(17),      // VARIABLE(KiBugCheckData),                   0x00A2 (162)
+	calc_krnl_func_addr(163),    // FUNC(KiUnlockDispatcherDatabase),           0x00A3 (163)
+	calc_krnl_var_addr(18),      // VARIABLE(LaunchDataPage),                   0x00A4 (164)
+	calc_krnl_func_addr(165),    // FUNC(MmAllocateContiguousMemory),           0x00A5 (165)
+	calc_krnl_func_addr(166),    // FUNC(MmAllocateContiguousMemoryEx),         0x00A6 (166)
+	calc_krnl_func_addr(167),    // FUNC(MmAllocateSystemMemory),               0x00A7 (167)
+	calc_krnl_func_addr(168),    // FUNC(MmClaimGpuInstanceMemory),             0x00A8 (168)
+	calc_krnl_func_addr(169),    // FUNC(MmCreateKernelStack),                  0x00A9 (169)
+	calc_krnl_func_addr(170),    // FUNC(MmDeleteKernelStack),                  0x00AA (170)
+	calc_krnl_func_addr(171),    // FUNC(MmFreeContiguousMemory),               0x00AB (171)
+	calc_krnl_func_addr(172),    // FUNC(MmFreeSystemMemory),                   0x00AC (172)
+	calc_krnl_func_addr(173),    // FUNC(MmGetPhysicalAddress),                 0x00AD (173)
+	calc_krnl_func_addr(174),    // FUNC(MmIsAddressValid),                     0x00AE (174)
+	calc_krnl_func_addr(175),    // FUNC(MmLockUnlockBufferPages),              0x00AF (175)
+	calc_krnl_func_addr(176),    // FUNC(MmLockUnlockPhysicalPage),             0x00B0 (176)
+	calc_krnl_func_addr(177),    // FUNC(MmMapIoSpace),                         0x00B1 (177)
+	calc_krnl_func_addr(178),    // FUNC(MmPersistContiguousMemory),            0x00B2 (178)
+	calc_krnl_func_addr(179),    // FUNC(MmQueryAddressProtect),                0x00B3 (179)
+	calc_krnl_func_addr(180),    // FUNC(MmQueryAllocationSize),                0x00B4 (180)
+	calc_krnl_func_addr(181),    // FUNC(MmQueryStatistics),                    0x00B5 (181)
+	calc_krnl_func_addr(182),    // FUNC(MmSetAddressProtect),                  0x00B6 (182)
+	calc_krnl_func_addr(183),    // FUNC(MmUnmapIoSpace),                       0x00B7 (183)
+	calc_krnl_func_addr(184),    // FUNC(NtAllocateVirtualMemory),              0x00B8 (184)
+	calc_krnl_func_addr(185),    // FUNC(NtCancelTimer),                        0x00B9 (185)
+	calc_krnl_func_addr(186),    // FUNC(NtClearEvent),                         0x00BA (186)
+	calc_krnl_func_addr(187),    // FUNC(NtClose),                              0x00BB (187)
+	calc_krnl_func_addr(188),    // FUNC(NtCreateDirectoryObject),              0x00BC (188)
+	calc_krnl_func_addr(189),    // FUNC(NtCreateEvent),                        0x00BD (189)
+	calc_krnl_func_addr(190),    // FUNC(NtCreateFile),                         0x00BE (190)
+	calc_krnl_func_addr(191),    // FUNC(NtCreateIoCompletion),                 0x00BF (191)
+	calc_krnl_func_addr(192),    // FUNC(NtCreateMutant),                       0x00C0 (192)
+	calc_krnl_func_addr(193),    // FUNC(NtCreateSemaphore),                    0x00C1 (193)
+	calc_krnl_func_addr(194),    // FUNC(NtCreateTimer),                        0x00C2 (194)
+	calc_krnl_func_addr(195),    // FUNC(NtDeleteFile),                         0x00C3 (195)
+	calc_krnl_func_addr(196),    // FUNC(NtDeviceIoControlFile),                0x00C4 (196)
+	calc_krnl_func_addr(197),    // FUNC(NtDuplicateObject),                    0x00C5 (197)
+	calc_krnl_func_addr(198),    // FUNC(NtFlushBuffersFile),                   0x00C6 (198)
+	calc_krnl_func_addr(199),    // FUNC(NtFreeVirtualMemory),                  0x00C7 (199)
+	calc_krnl_func_addr(200),    // FUNC(NtFsControlFile),                      0x00C8 (200)
+	calc_krnl_func_addr(201),    // FUNC(NtOpenDirectoryObject),                0x00C9 (201)
+	calc_krnl_func_addr(202),    // FUNC(NtOpenFile),                           0x00CA (202)
+	calc_krnl_func_addr(203),    // FUNC(NtOpenSymbolicLinkObject),             0x00CB (203)
+	calc_krnl_func_addr(204),    // FUNC(NtProtectVirtualMemory),               0x00CC (204)
+	calc_krnl_func_addr(205),    // FUNC(NtPulseEvent),                         0x00CD (205)
+	calc_krnl_func_addr(206),    // FUNC(NtQueueApcThread),                     0x00CE (206)
+	calc_krnl_func_addr(207),    // FUNC(NtQueryDirectoryFile),                 0x00CF (207)
+	calc_krnl_func_addr(208),    // FUNC(NtQueryDirectoryObject),               0x00D0 (208)
+	calc_krnl_func_addr(209),    // FUNC(NtQueryEvent),                         0x00D1 (209)
+	calc_krnl_func_addr(210),    // FUNC(NtQueryFullAttributesFile),            0x00D2 (210)
+	calc_krnl_func_addr(211),    // FUNC(NtQueryInformationFile),               0x00D3 (211)
+	calc_krnl_func_addr(212),    // FUNC(NtQueryIoCompletion),                  0x00D4 (212)
+	calc_krnl_func_addr(213),    // FUNC(NtQueryMutant),                        0x00D5 (213)
+	calc_krnl_func_addr(214),    // FUNC(NtQuerySemaphore),                     0x00D6 (214)
+	calc_krnl_func_addr(215),    // FUNC(NtQuerySymbolicLinkObject),            0x00D7 (215)
+	calc_krnl_func_addr(216),    // FUNC(NtQueryTimer),                         0x00D8 (216)
+	calc_krnl_func_addr(217),    // FUNC(NtQueryVirtualMemory),                 0x00D9 (217)
+	calc_krnl_func_addr(218),    // FUNC(NtQueryVolumeInformationFile),         0x00DA (218)
+	calc_krnl_func_addr(219),    // FUNC(NtReadFile),                           0x00DB (219)
+	calc_krnl_func_addr(220),    // FUNC(NtReadFileScatter),                    0x00DC (220)
+	calc_krnl_func_addr(221),    // FUNC(NtReleaseMutant),                      0x00DD (221)
+	calc_krnl_func_addr(222),    // FUNC(NtReleaseSemaphore),                   0x00DE (222)
+	calc_krnl_func_addr(223),    // FUNC(NtRemoveIoCompletion),                 0x00DF (223)
+	calc_krnl_func_addr(224),    // FUNC(NtResumeThread),                       0x00E0 (224)
+	calc_krnl_func_addr(225),    // FUNC(NtSetEvent),                           0x00E1 (225)
+	calc_krnl_func_addr(226),    // FUNC(NtSetInformationFile),                 0x00E2 (226)
+	calc_krnl_func_addr(227),    // FUNC(NtSetIoCompletion),                    0x00E3 (227)
+	calc_krnl_func_addr(228),    // FUNC(NtSetSystemTime),                      0x00E4 (228)
+	calc_krnl_func_addr(229),    // FUNC(NtSetTimerEx),                         0x00E5 (229)
+	calc_krnl_func_addr(230),    // FUNC(NtSignalAndWaitForSingleObjectEx),     0x00E6 (230)
+	calc_krnl_func_addr(231),    // FUNC(NtSuspendThread),                      0x00E7 (231)
+	calc_krnl_func_addr(232),    // FUNC(NtUserIoApcDispatcher),                0x00E8 (232)
+	calc_krnl_func_addr(233),    // FUNC(NtWaitForSingleObject),                0x00E9 (233)
+	calc_krnl_func_addr(234),    // FUNC(NtWaitForSingleObjectEx),              0x00EA (234)
+	calc_krnl_func_addr(235),    // FUNC(NtWaitForMultipleObjectsEx),           0x00EB (235)
+	calc_krnl_func_addr(236),    // FUNC(NtWriteFile),                          0x00EC (236)
+	calc_krnl_func_addr(237),    // FUNC(NtWriteFileGather),                    0x00ED (237)
+	calc_krnl_func_addr(238),    // FUNC(NtYieldExecution),                     0x00EE (238)
+	calc_krnl_func_addr(239),    // FUNC(ObCreateObject),                       0x00EF (239)
+	calc_krnl_var_addr(19),      // VARIABLE(ObDirectoryObjectType),            0x00F0 (240)
+	calc_krnl_func_addr(241),    // FUNC(ObInsertObject),                       0x00F1 (241)
+	calc_krnl_func_addr(242),    // FUNC(ObMakeTemporaryObject),                0x00F2 (242)
+	calc_krnl_func_addr(243),    // FUNC(ObOpenObjectByName),                   0x00F3 (243)
+	calc_krnl_func_addr(244),    // FUNC(ObOpenObjectByPointer),                0x00F4 (244)
+	calc_krnl_var_addr(20),      // VARIABLE(ObpObjectHandleTable),             0x00F5 (245)
+	calc_krnl_func_addr(246),    // FUNC(ObReferenceObjectByHandle),            0x00F6 (246)
+	calc_krnl_func_addr(247),    // FUNC(ObReferenceObjectByName),              0x00F7 (247)
+	calc_krnl_func_addr(248),    // FUNC(ObReferenceObjectByPointer),           0x00F8 (248)
+	calc_krnl_var_addr(21),      // VARIABLE(ObSymbolicLinkObjectType),         0x00F9 (249)
+	calc_krnl_func_addr(250),    // FUNC(ObfDereferenceObject),                 0x00FA (250)
+	calc_krnl_func_addr(251),    // FUNC(ObfReferenceObject),                   0x00FB (251)
+	calc_krnl_func_addr(252),    // FUNC(PhyGetLinkState),                      0x00FC (252)
+	calc_krnl_func_addr(253),    // FUNC(PhyInitialize),                        0x00FD (253)
+	calc_krnl_func_addr(254),    // FUNC(PsCreateSystemThread),                 0x00FE (254)
+	calc_krnl_func_addr(255),    // FUNC(PsCreateSystemThreadEx),               0x00FF (255)
+	calc_krnl_func_addr(256),    // FUNC(PsQueryStatistics),                    0x0100 (256)
+	calc_krnl_func_addr(257),    // FUNC(PsSetCreateThreadNotifyRoutine),       0x0101 (257)
+	calc_krnl_func_addr(258),    // FUNC(PsTerminateSystemThread),              0x0102 (258)
+	calc_krnl_var_addr(22),      // VARIABLE(PsThreadObjectType),               0x0103 (259)
+	calc_krnl_func_addr(260),    // FUNC(RtlAnsiStringToUnicodeString),         0x0104 (260)
+	calc_krnl_func_addr(261),    // FUNC(RtlAppendStringToString),              0x0105 (261)
+	calc_krnl_func_addr(262),    // FUNC(RtlAppendUnicodeStringToString),       0x0106 (262)
+	calc_krnl_func_addr(263),    // FUNC(RtlAppendUnicodeToString),             0x0107 (263)
+	calc_krnl_func_addr(264),    // FUNC(RtlAssert),                            0x0108 (264)
+	calc_krnl_func_addr(265),    // FUNC(RtlCaptureContext),                    0x0109 (265)
+	calc_krnl_func_addr(266),    // FUNC(RtlCaptureStackBackTrace),             0x010A (266)
+	calc_krnl_func_addr(267),    // FUNC(RtlCharToInteger),                     0x010B (267)
+	calc_krnl_func_addr(268),    // FUNC(RtlCompareMemory),                     0x010C (268)
+	calc_krnl_func_addr(269),    // FUNC(RtlCompareMemoryUlong),                0x010D (269)
+	calc_krnl_func_addr(270),    // FUNC(RtlCompareString),                     0x010E (270)
+	calc_krnl_func_addr(271),    // FUNC(RtlCompareUnicodeString),              0x010F (271)
+	calc_krnl_func_addr(272),    // FUNC(RtlCopyString),                        0x0110 (272)
+	calc_krnl_func_addr(273),    // FUNC(RtlCopyUnicodeString),                 0x0111 (273)
+	calc_krnl_func_addr(274),    // FUNC(RtlCreateUnicodeString),               0x0112 (274)
+	calc_krnl_func_addr(275),    // FUNC(RtlDowncaseUnicodeChar),               0x0113 (275)
+	calc_krnl_func_addr(276),    // FUNC(RtlDowncaseUnicodeString),             0x0114 (276)
+	calc_krnl_func_addr(277),    // FUNC(RtlEnterCriticalSection),              0x0115 (277)
+	calc_krnl_func_addr(278),    // FUNC(RtlEnterCriticalSectionAndRegion),     0x0116 (278)
+	calc_krnl_func_addr(279),    // FUNC(RtlEqualString),                       0x0117 (279)
+	calc_krnl_func_addr(280),    // FUNC(RtlEqualUnicodeString),                0x0118 (280)
+	calc_krnl_func_addr(281),    // FUNC(RtlExtendedIntegerMultiply),           0x0119 (281)
+	calc_krnl_func_addr(282),    // FUNC(RtlExtendedLargeIntegerDivide),        0x011A (282)
+	calc_krnl_func_addr(283),    // FUNC(RtlExtendedMagicDivide),               0x011B (283)
+	calc_krnl_func_addr(284),    // FUNC(RtlFillMemory),                        0x011C (284)
+	calc_krnl_func_addr(285),    // FUNC(RtlFillMemoryUlong),                   0x011D (285)
+	calc_krnl_func_addr(286),    // FUNC(RtlFreeAnsiString),                    0x011E (286)
+	calc_krnl_func_addr(287),    // FUNC(RtlFreeUnicodeString),                 0x011F (287)
+	calc_krnl_func_addr(288),    // FUNC(RtlGetCallersAddress),                 0x0120 (288)
+	calc_krnl_func_addr(289),    // FUNC(RtlInitAnsiString),                    0x0121 (289)
+	calc_krnl_func_addr(290),    // FUNC(RtlInitUnicodeString),                 0x0122 (290)
+	calc_krnl_func_addr(291),    // FUNC(RtlInitializeCriticalSection),         0x0123 (291)
+	calc_krnl_func_addr(292),    // FUNC(RtlIntegerToChar),                     0x0124 (292)
+	calc_krnl_func_addr(293),    // FUNC(RtlIntegerToUnicodeString),            0x0125 (293)
+	calc_krnl_func_addr(294),    // FUNC(RtlLeaveCriticalSection),              0x0126 (294)
+	calc_krnl_func_addr(295),    // FUNC(RtlLeaveCriticalSectionAndRegion),     0x0127 (295)
+	calc_krnl_func_addr(296),    // FUNC(RtlLowerChar),                         0x0128 (296)
+	calc_krnl_func_addr(297),    // FUNC(RtlMapGenericMask),                    0x0129 (297)
+	calc_krnl_func_addr(298),    // FUNC(RtlMoveMemory),                        0x012A (298)
+	calc_krnl_func_addr(299),    // FUNC(RtlMultiByteToUnicodeN),               0x012B (299)
+	calc_krnl_func_addr(300),    // FUNC(RtlMultiByteToUnicodeSize),            0x012C (300)
+	calc_krnl_func_addr(301),    // FUNC(RtlNtStatusToDosError),                0x012D (301)
+	calc_krnl_func_addr(302),    // FUNC(RtlRaiseException),                    0x012E (302)
+	calc_krnl_func_addr(303),    // FUNC(RtlRaiseStatus),                       0x012F (303)
+	calc_krnl_func_addr(304),    // FUNC(RtlTimeFieldsToTime),                  0x0130 (304)
+	calc_krnl_func_addr(305),    // FUNC(RtlTimeToTimeFields),                  0x0131 (305)
+	calc_krnl_func_addr(306),    // FUNC(RtlTryEnterCriticalSection),           0x0132 (306)
+	calc_krnl_func_addr(307),    // FUNC(RtlUlongByteSwap),                     0x0133 (307)
+	calc_krnl_func_addr(308),    // FUNC(RtlUnicodeStringToAnsiString),         0x0134 (308)
+	calc_krnl_func_addr(309),    // FUNC(RtlUnicodeStringToInteger),            0x0135 (309)
+	calc_krnl_func_addr(310),    // FUNC(RtlUnicodeToMultiByteN),               0x0136 (310)
+	calc_krnl_func_addr(311),    // FUNC(RtlUnicodeToMultiByteSize),            0x0137 (311)
+	calc_krnl_func_addr(312),    // FUNC(RtlUnwind),                            0x0138 (312)
+	calc_krnl_func_addr(313),    // FUNC(RtlUpcaseUnicodeChar),                 0x0139 (313)
+	calc_krnl_func_addr(314),    // FUNC(RtlUpcaseUnicodeString),               0x013A (314)
+	calc_krnl_func_addr(315),    // FUNC(RtlUpcaseUnicodeToMultiByteN),         0x013B (315)
+	calc_krnl_func_addr(316),    // FUNC(RtlUpperChar),                         0x013C (316)
+	calc_krnl_func_addr(317),    // FUNC(RtlUpperString),                       0x013D (317)
+	calc_krnl_func_addr(318),    // FUNC(RtlUshortByteSwap),                    0x013E (318)
+	calc_krnl_func_addr(319),    // FUNC(RtlWalkFrameChain),                    0x013F (319)
+	calc_krnl_func_addr(320),    // FUNC(RtlZeroMemory),                        0x0140 (320)
+	calc_krnl_var_addr(23),      // VARIABLE(XboxEEPROMKey),                    0x0141 (321)
+	calc_krnl_var_addr(24),      // VARIABLE(XboxHardwareInfo),                 0x0142 (322)
+	calc_krnl_var_addr(25),      // VARIABLE(XboxHDKey),                        0x0143 (323)
+	calc_krnl_var_addr(26),      // VARIABLE(XboxKrnlVersion),                  0x0144 (324)
+	calc_krnl_var_addr(27),      // VARIABLE(XboxSignatureKey),                 0x0145 (325)
+	calc_krnl_var_addr(28),      // VARIABLE(XeImageFileName),                  0x0146 (326)
+	calc_krnl_func_addr(327),    // FUNC(XeLoadSection),                        0x0147 (327)
+	calc_krnl_func_addr(328),    // FUNC(XeUnloadSection),                      0x0148 (328)
+	calc_krnl_func_addr(329),    // FUNC(READ_PORT_BUFFER_UCHAR),               0x0149 (329)
+	calc_krnl_func_addr(330),    // FUNC(READ_PORT_BUFFER_USHORT),              0x014A (330)
+	calc_krnl_func_addr(331),    // FUNC(READ_PORT_BUFFER_ULONG),               0x014B (331)
+	calc_krnl_func_addr(332),    // FUNC(WRITE_PORT_BUFFER_UCHAR),              0x014C (332)
+	calc_krnl_func_addr(333),    // FUNC(WRITE_PORT_BUFFER_USHORT),             0x014D (333)
+	calc_krnl_func_addr(334),    // FUNC(WRITE_PORT_BUFFER_ULONG),              0x014E (334)
+	calc_krnl_func_addr(335),    // FUNC(XcSHAInit),                            0x014F (335)
+	calc_krnl_func_addr(336),    // FUNC(XcSHAUpdate),                          0x0150 (336)
+	calc_krnl_func_addr(337),    // FUNC(XcSHAFinal),                           0x0151 (337)
+	calc_krnl_func_addr(338),    // FUNC(XcRC4Key),                             0x0152 (338)
+	calc_krnl_func_addr(339),    // FUNC(XcRC4Crypt),                           0x0153 (339)
+	calc_krnl_func_addr(340),    // FUNC(XcHMAC),                               0x0154 (340)
+	calc_krnl_func_addr(341),    // FUNC(XcPKEncPublic),                        0x0155 (341)
+	calc_krnl_func_addr(342),    // FUNC(XcPKDecPrivate),                       0x0156 (342)
+	calc_krnl_func_addr(343),    // FUNC(XcPKGetKeyLen),                        0x0157 (343)
+	calc_krnl_func_addr(344),    // FUNC(XcVerifyPKCS1Signature),               0x0158 (344)
+	calc_krnl_func_addr(345),    // FUNC(XcModExp),                             0x0159 (345)
+	calc_krnl_func_addr(346),    // FUNC(XcDESKeyParity),                       0x015A (346)
+	calc_krnl_func_addr(347),    // FUNC(XcKeyTable),                           0x015B (347)
+	calc_krnl_func_addr(348),    // FUNC(XcBlockCrypt),                         0x015C (348)
+	calc_krnl_func_addr(349),    // FUNC(XcBlockCryptCBC),                      0x015D (349)
+	calc_krnl_func_addr(350),    // FUNC(XcCryptService),                       0x015E (350)
+	calc_krnl_func_addr(351),    // FUNC(XcUpdateCrypto),                       0x015F (351)
+	calc_krnl_func_addr(352),    // FUNC(RtlRip),                               0x0160 (352)
+	calc_krnl_var_addr(29),      // VARIABLE(XboxLANKey),                       0x0161 (353)
+	calc_krnl_var_addr(30),      // VARIABLE(XboxAlternateSignatureKeys),       0x0162 (354)
+	calc_krnl_var_addr(31),      // VARIABLE(XePublicKeyData),                  0x0163 (355)
+	calc_krnl_var_addr(32),      // VARIABLE(HalBootSMCVideoMode),              0x0164 (356)
+	calc_krnl_var_addr(33),      // VARIABLE(IdexChannelObject),                0x0165 (357)
+	calc_krnl_func_addr(358),    // FUNC(HalIsResetOrShutdownPending),          0x0166 (358)
+	calc_krnl_func_addr(359),    // FUNC(IoMarkIrpMustComplete),                0x0167 (359)
+	calc_krnl_func_addr(360),    // FUNC(HalInitiateShutdown),                  0x0168 (360)
+	calc_krnl_func_addr(361),    // FUNC(RtlSnprintf),                          0x0169 (361)
+	calc_krnl_func_addr(362),    // FUNC(RtlSprintf),                           0x016A (362)
+	calc_krnl_func_addr(363),    // FUNC(RtlVsnprintf),                         0x016B (363)
+	calc_krnl_func_addr(364),    // FUNC(RtlVsprintf),                          0x016C (364)
+	calc_krnl_func_addr(365),    // FUNC(HalEnableSecureTrayEject),             0x016D (365)
+	calc_krnl_func_addr(366),    // FUNC(HalWriteSMCScratchRegister),           0x016E (366)
+	calc_krnl_func_addr(367),    // FUNC(UnknownAPI367),                        0x016F (367)
+	calc_krnl_func_addr(368),    // FUNC(UnknownAPI368),                        0x0170 (368)
+	calc_krnl_func_addr(369),    // FUNC(UnknownAPI369),                        0x0171 (369)
+	calc_krnl_func_addr(370),    // FUNC(XProfpControl),                        0x0172 (370) PROFILING
+	calc_krnl_func_addr(371),    // FUNC(XProfpGetData),                        0x0173 (371) PROFILING
+	calc_krnl_func_addr(372),    // FUNC(IrtClientInitFast),                    0x0174 (372) PROFILING
+	calc_krnl_func_addr(373),    // FUNC(IrtSweep),                             0x0175 (373) PROFILING
+	calc_krnl_func_addr(374),    // FUNC(MmDbgAllocateMemory),                  0x0176 (374) DEVKIT ONLY!
+	calc_krnl_func_addr(375),    // FUNC(MmDbgFreeMemory),                      0x0177 (375) DEVKIT ONLY!
+	calc_krnl_func_addr(376),    // FUNC(MmDbgQueryAvailablePages),             0x0178 (376) DEVKIT ONLY!
+	calc_krnl_func_addr(377),    // FUNC(MmDbgReleaseAddress),                  0x0179 (377) DEVKIT ONLY!
+	calc_krnl_func_addr(378),    // FUNC(MmDbgWriteCheck),                      0x017A (378) DEVKIT ONLY!
+};
+
+
 void ApplyMediaPatches()
 {
 	// Patch the XBE Header to allow running from all media types
@@ -581,21 +1030,191 @@ void PatchRdtscInstructions()
 	EmuLogInit(LOG_LEVEL::INFO, "Done patching rdtsc, total %d rdtsc instructions patched", g_RdtscPatches.size());
 }
 
-void MapThunkTable(uint32_t* kt, uint32_t* pThunkTable)
+void MapThunkTable(uint32_t* kt, const uint32_t* pThunkTable, const hook *HookTable)
 {
+#if 0
     const bool SendDebugReports = (pThunkTable == CxbxKrnl_KernelThunkTable) && CxbxDebugger::CanReport();
-
-	uint32_t* kt_tbl = (uint32_t*)kt;
+#endif
+	uint32_t kt_tbl = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(kt), 4).data());
 	int i = 0;
-	while (kt_tbl[i] != 0) {
-		int t = kt_tbl[i] & 0x7FFFFFFF;
-		kt_tbl[i] = pThunkTable[t];
+	while (kt_tbl != 0) {
+		int ordinal = kt_tbl & 0x7FFFFFFF;
+		XBOX_MEM_WRITE(reinterpret_cast<xbaddr>(kt + i), 4, &pThunkTable[ordinal]);
+#if 0
         if (SendDebugReports) {
             // TODO: Update CxbxKrnl_KernelThunkTable to include symbol names
-            std::string importName = "KernelImport_" + std::to_string(t);
-            CxbxDebugger::ReportKernelPatch(importName.c_str(), kt_tbl[i]);
+            std::string importName = "KernelImport_" + std::to_string(ordinal);
+            CxbxDebugger::ReportKernelPatch(importName.c_str(), kt_tbl);
         }
+#endif
+		if (HookTable[ordinal].info.addr != nullptr) {
+			g_CPU->InstallHook(pThunkTable[ordinal], &HookTable[ordinal]);
+		}
+		else {
+			switch (ordinal)
+			{
+			case 16:
+				xboxkrnl::ExEventObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ExEventObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[0], &xboxkrnl::ExEventObjectType);
+				break;
+
+			case 22:
+				xboxkrnl::ExMutantObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ExMutantObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[1], &xboxkrnl::ExMutantObjectType);
+				break;
+
+			case 30:
+				xboxkrnl::ExSemaphoreObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ExSemaphoreObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[2], &xboxkrnl::ExSemaphoreObjectType);
+				break;
+
+			case 31:
+				xboxkrnl::ExTimerObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ExTimerObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[3], &xboxkrnl::ExTimerObjectType);
+				break;
+
+			case 40:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[4], &xboxkrnl::HalDiskCachePartitionCount);
+				break;
+
+			case 41:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[5], &xboxkrnl::HalDiskModelNumber);
+				break;
+
+			case 42:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[6], &xboxkrnl::HalDiskSerialNumber);
+				break;
+
+			case 64:
+				xboxkrnl::IoCompletionObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::IoCompletionObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[7], &xboxkrnl::IoCompletionObjectType);
+				break;
+
+			case 70:
+				xboxkrnl::IoDeviceObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::IoDeviceObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[8], &xboxkrnl::IoDeviceObjectType);
+				break;
+
+			case 71:
+				xboxkrnl::IoFileObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::IoFileObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[9], &xboxkrnl::IoFileObjectType);
+				break;
+
+			case 88:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[10], &xboxkrnl::KdDebuggerEnabled);
+				break;
+
+			case 89:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[11], &xboxkrnl::KdDebuggerNotPresent);
+				break;
+
+			case 102:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[12], xboxkrnl::MmGlobalData);
+				break;
+
+			case 120:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[13], &xboxkrnl::KeInterruptTime);
+				break;
+
+			case 154:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[14], &xboxkrnl::KeSystemTime);
+				break;
+
+			case 156:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[15], &xboxkrnl::KeTickCount);
+				break;
+
+			case 157:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[16], &xboxkrnl::KeTimeIncrement);
+				break;
+
+			case 162:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[17], xboxkrnl::KiBugCheckData);
+				break;
+
+			case 164:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[18], &xboxkrnl::LaunchDataPage);
+				break;
+
+			case 240:
+				xboxkrnl::ObDirectoryObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ObDirectoryObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[19], &xboxkrnl::ObDirectoryObjectType);
+				break;
+
+			case 245:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[20], &xboxkrnl::ObpObjectHandleTable);
+				break;
+
+			case 249:
+				xboxkrnl::ObSymbolicLinkObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::ObSymbolicLinkObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[21], &xboxkrnl::ObSymbolicLinkObjectType);
+				break;
+
+			case 259:
+				xboxkrnl::PsThreadObjectType.AllocateProcedure = reinterpret_cast<xboxkrnl::OB_ALLOCATE_METHOD>(pThunkTable[15]);
+				xboxkrnl::PsThreadObjectType.FreeProcedure = reinterpret_cast<xboxkrnl::OB_FREE_METHOD>(pThunkTable[17]);
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[22], &xboxkrnl::PsThreadObjectType);
+				break;
+
+			case 321:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[23], &xboxkrnl::XboxEEPROMKey);
+				break;
+
+			case 322:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[24], &xboxkrnl::XboxHardwareInfo);
+				break;
+
+			case 323:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[25], &xboxkrnl::XboxHDKey);
+				break;
+
+			case 324:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[26], &xboxkrnl::XboxKrnlVersion);
+				break;
+
+			case 325:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[27], &xboxkrnl::XboxSignatureKey);
+				break;
+
+			case 326:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[28], &xboxkrnl::XeImageFileName);
+				break;
+
+			case 353:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[29], &xboxkrnl::XboxLANKey);
+				break;
+
+			case 354:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[30], xboxkrnl::XboxAlternateSignatureKeys);
+				break;
+
+			case 355:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[31], xboxkrnl::XePublicKeyData);
+				break;
+
+			case 356:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[32], &xboxkrnl::HalBootSMCVideoMode);
+				break;
+
+			case 357:
+				XBOX_MEM_WRITE(pThunkTable[ordinal], KernelVarsSize[33], &xboxkrnl::IdexChannelObject);
+				break;
+
+			default:
+				assert(0);
+			}
+		}
 		i++;
+		kt_tbl = *reinterpret_cast<uint32_t *>(XBOX_MEM_READ(reinterpret_cast<xbaddr>(kt + i), 4).data());
 	}
 }
 
@@ -612,7 +1231,7 @@ void ImportLibraries(XbeImportEntry *pImportDirectory)
 		std::wstring LibName = std::wstring((wchar_t*)pImportDirectory->LibNameAddr);
 
 		if (LibName == L"xbdm.dll") {
-			MapThunkTable((uint32_t *)pImportDirectory->ThunkAddr, Cxbx_LibXbdmThunkTable);
+			MapThunkTable((uint32_t *)pImportDirectory->ThunkAddr, Cxbx_LibXbdmThunkTable, nullptr); // TODO: hook table for xbdm
 		}
 		else {
 			// TODO: replace wprintf to EmuLogInit, how?
@@ -1174,13 +1793,13 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 	kt ^= XOR_KT_KEY[to_underlying(xbeType)];
 
 	// Process the Kernel thunk table to map Kernel function calls to their actual address :
-	MapThunkTable((uint32_t*)kt, CxbxKrnl_KernelThunkTable);
-
+	MapThunkTable((uint32_t*)kt, CxbxKrnl_KernelThunkTable, CxbxKrnl_KernelHookTable);
+#if 0
 	// Does this xbe import any other libraries?
 	if (CxbxKrnl_Xbe->m_Header.dwNonKernelImportDirAddr) {
 		ImportLibraries((XbeImportEntry*)CxbxKrnl_Xbe->m_Header.dwNonKernelImportDirAddr);
 	}
-
+#endif
 	// Launch the XBE :
 	{
 		// Load TLS
@@ -1244,7 +1863,7 @@ void LoadXboxKeys(std::string path)
 	EmuLog(LOG_LEVEL::WARNING, "Failed to load Keys.bin. Cxbx-Reloaded will be unable to read Save Data from a real Xbox");
 }
 
-[[noreturn]] void CxbxKrnlInit
+void CxbxKrnlInit
 (
 	void                   *pTLSData,
 	Xbe::TLS               *pTLS,
@@ -1654,7 +2273,7 @@ void CxbxUnlockFilePath()
 	}
 };*/
 
-__declspec(noreturn) void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const char *szErrorMessage, ...)
+void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -1882,7 +2501,7 @@ void CxbxPrintUEMInfo(ULONG ErrorCode)
 	}
 }
 
-__declspec(noreturn) void CxbxKrnlTerminateThread()
+void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }

@@ -503,7 +503,7 @@ XBSYSAPI EXPORTNUM(155) BOOLEAN NTAPI KeTestAlertThread
 // ******************************************************************
 // * 0x009C - KeTickCount
 // ******************************************************************
-XBSYSAPI EXPORTNUM(156) volatile DWORD KeTickCount;
+XBSYSAPI EXPORTNUM(156) DWORD KeTickCount;
 
 // ******************************************************************
 // * 0x009D - KeTimeIncrement
