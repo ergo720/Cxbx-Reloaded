@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <climits>
 #include <cuchar>
+#include <utility>
 
 
 namespace xbox
@@ -83,8 +84,91 @@ namespace xbox
 	// ******************************************************************
 	// * Pointer types
 	// ******************************************************************
-	typedef char_xt *PCHAR;
-	typedef char_xt *PSZ;
+	/* ptr_xt is the type of a pointer */
+	// NOTE: never use the operator && and || with xbox pointer types. This because their overloads don't support short-circuit evaluation,
+	// unlike their built-in counterparts. This, in turn, can lead to unexpected results in code such as "if (ptr && ptr->a)"
+	template<typename T>
+	class ptr_xt
+	{
+	public:
+		ptr_xt() { ptr = zero; }
+		ptr_xt(const std::uint32_t val) { ptr = val; }
+		ptr_xt(const T *val) { ptr = reinterpret_cast<std::uintptr_t>(val); }
+		ptr_xt(const ptr_xt &val) { ptr = val.ptr; }
+		ptr_xt(ptr_xt &&val) noexcept { ptr = std::exchange(val.ptr, zero); }
+		ptr_xt &operator=(const ptr_xt &val) { ptr = val.ptr; return *this; }
+		T &operator[](const std::int32_t idx) const { return *reinterpret_cast<T *>(ptr + (sizeof(T) * idx)); }
+		ptr_xt &operator++() { ptr += sizeof(T); return *this; }
+		ptr_xt &operator--() { ptr -= sizeof(T); return *this; }
+		ptr_xt operator++(int dummy) { ptr_xt ret(*this); ++(*this); return ret; }
+		ptr_xt operator--(int dummy) { ptr_xt ret(*this); --(*this); return ret; }
+		ptr_xt operator+(const std::int32_t n) const { return ptr + (sizeof(T) * n); }
+		ptr_xt operator-(const std::int32_t n) const { return ptr - (sizeof(T) * n); }
+		ptr_xt operator-(const ptr_xt &val) const { return (ptr - val.ptr) / sizeof(T); }
+		ptr_xt &operator+=(const std::int32_t n) { *this = *this + n; return *this; }
+		ptr_xt &operator-=(const std::int32_t n) { *this = *this - n; return *this; }
+		bool operator==(const std::uint32_t val) const { return ptr == val; }
+		bool operator!=(const std::uint32_t val) const { return ptr != val; }
+		bool operator==(const ptr_xt &val) const { return ptr == val.ptr; }
+		bool operator!=(const ptr_xt &val) const { return ptr != val.ptr; }
+		bool operator>=(const ptr_xt &val) const { return ptr >= val.ptr; }
+		bool operator<=(const ptr_xt &val) const { return ptr <= val.ptr; }
+		bool operator>(const ptr_xt &val) const { return ptr > val.ptr; }
+		bool operator<(const ptr_xt &val) const { return ptr < val.ptr; }
+		bool operator&&(const ptr_xt &val) const = delete;
+		bool operator||(const ptr_xt &val) const = delete;
+		T &operator*() { return *reinterpret_cast<T *>(ptr); }
+		T *operator->() { return reinterpret_cast<T *>(ptr); }
+		explicit operator bool() { return ptr != zero; }
+		explicit operator std::uint32_t() { return ptr; }
+		template<typename U> explicit operator U *() { return reinterpret_cast<U *>(ptr); }
+		using ptr_type = T;
+
+		// double pointer support
+		template<typename U> ptr_xt(const U **val) { ptr = reinterpret_cast<uintptr_t>(val); }
+		template<typename U> ptr_xt(U **val) { ptr = reinterpret_cast<uintptr_t>(val); }
+
+	private:
+		std::uint32_t ptr;
+	};
+
+	/* template specialization for void_xt. This is necessary because void types don't support pointer arithmetic,
+	and the corresponding operators will end up doing void& and sizeof(void), both of which are forbidden */
+	template<>
+	class ptr_xt<void_xt>
+	{
+	public:
+		ptr_xt() { ptr = zero; }
+		ptr_xt(const std::uint32_t val) { ptr = val; }
+		ptr_xt(const void_xt *val) { ptr = reinterpret_cast<std::uintptr_t>(val); }
+		ptr_xt(const ptr_xt &val) { ptr = val.ptr; }
+		ptr_xt(ptr_xt &&val) noexcept { ptr = std::exchange(val.ptr, zero); }
+		ptr_xt &operator=(const ptr_xt &val) { ptr = val.ptr; return *this; }
+		bool operator==(const std::uint32_t val) const { return ptr == val; }
+		bool operator!=(const std::uint32_t val) const { return ptr != val; }
+		bool operator==(const ptr_xt &val) const { return ptr == val.ptr; }
+		bool operator!=(const ptr_xt &val) const { return ptr != val.ptr; }
+		bool operator>=(const ptr_xt &val) const { return ptr >= val.ptr; }
+		bool operator<=(const ptr_xt &val) const { return ptr <= val.ptr; }
+		bool operator>(const ptr_xt &val) const { return ptr > val.ptr; }
+		bool operator<(const ptr_xt &val) const { return ptr < val.ptr; }
+		bool operator&&(const ptr_xt &val) const = delete;
+		bool operator||(const ptr_xt &val) const = delete;
+		explicit operator bool() { return ptr != zero; }
+		explicit operator std::uint32_t() { return ptr; }
+		template<typename U> explicit operator U *() { return reinterpret_cast<U *>(ptr); }
+		using ptr_type = void_xt;
+
+		// double pointer support
+		ptr_xt(const void_xt **val) { ptr = reinterpret_cast<uintptr_t>(val); }
+		ptr_xt(void_xt **val) { ptr = reinterpret_cast<uintptr_t>(val); }
+
+	private:
+		std::uint32_t ptr;
+	};
+
+	template<typename T> using pptr_xt = ptr_xt<ptr_xt<T>>;
+	using pchar_xt = ptr_xt<char_xt>;	typedef char_xt *PSZ;
 	typedef char_xt *PCSZ;
 	typedef byte_xt *PBYTE;
 	typedef boolean_xt *PBOOLEAN;
@@ -133,4 +217,5 @@ namespace xbox
 	// ******************************************************************
 	static_assert(CHAR_BIT == 8);
 	static_assert(sizeof(char16_t) == 2);
+	static_assert(sizeof(ptr_xt<void_xt>) == 4);
 }
