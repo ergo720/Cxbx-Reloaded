@@ -168,7 +168,8 @@ namespace xbox
 	};
 
 	template<typename T> using pptr_xt = ptr_xt<ptr_xt<T>>;
-	using pchar_xt = ptr_xt<char_xt>;	typedef char_xt *PSZ;
+	using pchar_xt = ptr_xt<char_xt>;
+	typedef char_xt *PSZ;
 	typedef char_xt *PCSZ;
 	typedef byte_xt *PBYTE;
 	typedef boolean_xt *PBOOLEAN;

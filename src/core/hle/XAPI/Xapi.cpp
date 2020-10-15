@@ -1367,7 +1367,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMUA)
 (
 	dword_xt dwPort,                  
 	dword_xt dwSlot,                  
-	PCHAR pchDrive               
+	pchar_xt pchDrive
 )
 {
 
@@ -1427,7 +1427,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMURootA)
 (
 	dword_xt dwPort,                  
 	dword_xt dwSlot,                  
-	PCHAR pchDrive               
+	pchar_xt pchDrive
 )
 {
 

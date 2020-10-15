@@ -218,10 +218,10 @@ XBSYSAPI EXPORTNUM(263) xbox::ntstatus_xt NTAPI xbox::RtlAppendUnicodeToString
 // Debug API?
 XBSYSAPI EXPORTNUM(264) xbox::void_xt NTAPI xbox::RtlAssert
 (
-	PCHAR   FailedAssertion,
-	PCHAR   FileName,
+	pchar_xt   FailedAssertion,
+	pchar_xt   FileName,
 	ulong_xt   LineNumber,
-	PCHAR   Message
+	pchar_xt   Message
 )
 {
 	LOG_FUNC_BEGIN
@@ -232,9 +232,9 @@ XBSYSAPI EXPORTNUM(264) xbox::void_xt NTAPI xbox::RtlAssert
 		LOG_FUNC_END;
 
 	std::stringstream ss;
-	ss << "RtlAssert() raised by emulated program\n" << FileName << ":" << LineNumber << ":" << FailedAssertion ;
+	ss << "RtlAssert() raised by emulated program\n" << (char *)FileName << ":" << (char *)LineNumber << ":" << (char *)FailedAssertion ;
 	if (Message) {
-		ss << " " << Message;
+		ss << " " << (char *)Message;
 	}
 
 	ss << ")";
@@ -1337,7 +1337,7 @@ XBSYSAPI EXPORTNUM(299) xbox::ntstatus_xt NTAPI xbox::RtlMultiByteToUnicodeN
 	IN     PWSTR UnicodeString,
 	IN     ulong_xt MaxBytesInUnicodeString,
 	IN     PULONG BytesInUnicodeString,
-	IN     PCHAR MultiByteString,
+	IN     pchar_xt MultiByteString,
 	IN     ulong_xt BytesInMultiByteString
 )
 {
@@ -1373,7 +1373,7 @@ XBSYSAPI EXPORTNUM(299) xbox::ntstatus_xt NTAPI xbox::RtlMultiByteToUnicodeN
 XBSYSAPI EXPORTNUM(300) xbox::ntstatus_xt NTAPI xbox::RtlMultiByteToUnicodeSize
 (
 	IN PULONG BytesInUnicodeString,
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt BytesInMultiByteString
 )
 {
@@ -1830,7 +1830,7 @@ XBSYSAPI EXPORTNUM(309) xbox::ntstatus_xt NTAPI xbox::RtlUnicodeStringToInteger
 // ******************************************************************
 XBSYSAPI EXPORTNUM(310) xbox::ntstatus_xt NTAPI xbox::RtlUnicodeToMultiByteN
 (
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -1966,7 +1966,7 @@ XBSYSAPI EXPORTNUM(314) xbox::ntstatus_xt NTAPI xbox::RtlUpcaseUnicodeString
 // ******************************************************************
 XBSYSAPI EXPORTNUM(315) xbox::ntstatus_xt NTAPI xbox::RtlUpcaseUnicodeToMultiByteN
 (
-	IN OUT PCHAR MultiByteString,
+	IN OUT pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -2119,9 +2119,9 @@ XBSYSAPI EXPORTNUM(320) xbox::void_xt NTAPI xbox::RtlZeroMemory
 // ******************************************************************
 XBSYSAPI EXPORTNUM(352) xbox::void_xt NTAPI xbox::RtlRip
 (
-	PCHAR	ApiName,
-	PCHAR	Expression,
-	PCHAR	Message
+	pchar_xt	ApiName,
+	pchar_xt	Expression,
+	pchar_xt	Message
 )
 {
 	LOG_FUNC_BEGIN

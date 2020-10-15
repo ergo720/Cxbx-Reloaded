@@ -468,7 +468,7 @@ XBSYSAPI EXPORTNUM(357) xbox::IDE_CHANNEL_OBJECT xbox::IdexChannelObject = { };
 // ******************************************************************
 XBSYSAPI EXPORTNUM(361) xbox::int_xt CDECL xbox::RtlSnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -484,7 +484,7 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt CDECL xbox::RtlSnprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = snprintf(string, count, format, ap);
+	INT Result = snprintf((char *)string, count, format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -495,7 +495,7 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt CDECL xbox::RtlSnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(362) xbox::int_xt CDECL xbox::RtlSprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 )
@@ -509,7 +509,7 @@ XBSYSAPI EXPORTNUM(362) xbox::int_xt CDECL xbox::RtlSprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = sprintf(string, format, ap);
+	INT Result = sprintf((char *)string, format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -520,7 +520,7 @@ XBSYSAPI EXPORTNUM(362) xbox::int_xt CDECL xbox::RtlSprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(363) xbox::int_xt CDECL xbox::RtlVsnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -536,7 +536,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt CDECL xbox::RtlVsnprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = vsnprintf(string, count, format, ap);
+	INT Result = vsnprintf((char *)string, count, format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -547,7 +547,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt CDECL xbox::RtlVsnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(364) xbox::int_xt CDECL xbox::RtlVsprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 )
@@ -561,7 +561,7 @@ XBSYSAPI EXPORTNUM(364) xbox::int_xt CDECL xbox::RtlVsprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = vsprintf(string, format, ap);
+	INT Result = vsprintf((char *)string, format, ap);
 	va_end(ap);
 
 	RETURN(Result);

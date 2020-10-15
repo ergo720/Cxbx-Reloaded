@@ -30,7 +30,7 @@ XBSYSAPI EXPORTNUM(7) ntstatus_xt NTAPI DbgLoadImageSymbols
 );
 XBSYSAPI EXPORTNUM(8) ulong_xt _cdecl DbgPrint
 (
-	PCHAR  Format, ...
+	pchar_xt  Format, ...
 );
 XBSYSAPI EXPORTNUM(10) ulong_xt NTAPI DbgPrompt
 (

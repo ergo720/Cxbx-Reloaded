@@ -171,7 +171,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(DirectSoundCreateBuffer)
     if (!g_pDSound8 && !g_bDSoundCreateCalled) {
         HRESULT hRet;
 
-        hRet = xbox::EMUPATCH(DirectSoundCreate)(nullptr, &g_pDSound8, nullptr);
+        hRet = xbox::EMUPATCH(DirectSoundCreate)((void *)nullptr, &g_pDSound8, (IUnknown *)nullptr);
         if (hRet != DS_OK) {
             CxbxKrnlCleanup("Unable to initialize DirectSound!");
         }
@@ -267,7 +267,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(DirectSoundCreateBuffer)
 // ******************************************************************
 xbox::hresult_xt WINAPI xbox::EMUPATCH(IDirectSound_CreateSoundBuffer)
 (
-    LPDIRECTSOUND8          pThis,
+    ptr_xt<IDirectSound8>          pThis,
     X_DSBUFFERDESC*         pdsbd,
     OUT XbHybridDSBuffer**  ppBuffer,
     LPUNKNOWN               pUnkOuter)

@@ -32,6 +32,7 @@
 #include <iomanip> // For std::setw
 #include <atomic> // For atomic_bool and atomic_uint
 #include "common\util\CxbxUtil.h" // For g_bPrintfOn and to_underlying
+#include "xbox_types.h"
 
 // NOTE: using ERROR2 since windows.h imports an ERROR macro which would conflict otherwise
 typedef enum class _LOG_LEVEL {
@@ -239,10 +240,32 @@ extern inline void output_wchar(std::ostream& os, wchar_t c);
 
 // By default, sanitization functions simply return the given argument
 // (type and value) which results in calls to standard output writers.
+// If the argument is an xbox pointer type, it will cast it away and return a plain pointer type.
+// Doing so allows to avoid the need to do this casting every time an xbox pointer is logged.
+template<typename>
+struct is_xbox_ptr : std::false_type {};
+
+template<typename T>
+struct is_xbox_ptr<xbox::ptr_xt<T>> : std::true_type {};
+
+template<typename>
+struct is_xbox_pptr : std::false_type {};
+
+template<typename T>
+struct is_xbox_pptr<xbox::pptr_xt<T>> : std::true_type {};
+
 template<class T>
-inline T _log_sanitize(T value, int ignored_length = 0)
+inline auto _log_sanitize(T value, int ignored_length = 0)
 {
-	return value;
+	if constexpr (is_xbox_pptr<T>::value) {
+		return (typename std::decay<T>::type::ptr_type::ptr_type **)(value);
+	}
+	else if constexpr (is_xbox_ptr<T>::value) {
+		return (typename std::decay<T>::type::ptr_type *)(value);
+	}
+	else {
+		return value;
+	}
 }
 
 #if 0 // TODO FIXME : Disabled for now, as this is incorrectly called for INT types too

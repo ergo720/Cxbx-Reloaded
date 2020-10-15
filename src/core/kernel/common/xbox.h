@@ -497,7 +497,7 @@ XBSYSAPI EXPORTNUM(357) IDE_CHANNEL_OBJECT IdexChannelObject;
 // ******************************************************************
 XBSYSAPI EXPORTNUM(361) int_xt CDECL RtlSnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -508,7 +508,7 @@ XBSYSAPI EXPORTNUM(361) int_xt CDECL RtlSnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(362) int_xt CDECL RtlSprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 );
@@ -518,7 +518,7 @@ XBSYSAPI EXPORTNUM(362) int_xt CDECL RtlSprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(363) int_xt CDECL RtlVsnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -529,7 +529,7 @@ XBSYSAPI EXPORTNUM(363) int_xt CDECL RtlVsnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(364) int_xt CDECL RtlVsprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 );
