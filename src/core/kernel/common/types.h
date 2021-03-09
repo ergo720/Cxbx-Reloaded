@@ -1843,6 +1843,33 @@ typedef struct _KAPC
 KAPC, *PKAPC, *RESTRICTED_POINTER PRKAPC;
 
 // ******************************************************************
+// * Process priority
+// ******************************************************************
+#define XBOX_PROCESS_NORMAL_PRIORITY 8
+
+// ******************************************************************
+// * Thread related variables
+// ******************************************************************
+#define XBOX_THREAD_QUANTUM            60
+#define XBOX_THREAD_QUANTUM_DECREMENT  3
+#define THREAD_PRIORITY_TABLE_SIZE     32
+
+// ******************************************************************
+// * Thread state
+// ******************************************************************
+typedef enum _KTHREAD_STATE
+{
+	Initialized,
+	Ready,
+	Running,
+	Standby,
+	Terminated,
+	Waiting,
+	Transition
+}
+KTHREAD_STATE;
+
+// ******************************************************************
 // * KTHREAD
 // ******************************************************************
 // *

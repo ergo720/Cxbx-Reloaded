@@ -31,6 +31,7 @@
 #include <core\kernel\exports\xboxkrnl.h>
 #include "core\kernel\exports\EmuKrnl.h" // For InitializeListHead(), etc.
 #include "core\kernel\exports\EmuKrnlKe.h"
+#include "core\kernel\exports\EmuKrnlKi.h"
 #include "core\kernel\support\EmuFS.h" // For fs_instruction_t
 #include "core\kernel\init\CxbxKrnl.h"
 #include "Logging.h"
@@ -514,7 +515,7 @@ void EmuInitFS()
 }
 
 // generate fs segment selector
-void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
+void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData, xbox::PKTHREAD kThread)
 {
 	void *pNewTLS = nullptr;
 
@@ -537,6 +538,9 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 
 			/* + HACK: extra safety padding 0x100 */
 			pNewTLS = (void*)xbox::ExAllocatePool(dwCopySize + dwZeroSize + 0x100 + 0xC);
+			if (pNewTLS == xbox::zeroptr) {
+				CxbxKrnlCleanup("Failed to allocate memory for TLS!");
+			}
 			xbox::RtlZeroMemory(pNewTLS, dwCopySize + dwZeroSize + 0x100 + 0xC);
 			/* Skip the first 12 bytes so that TLSData will be 16 byte aligned (addr returned by AllocateZeroed is 4K aligned) */
 			pNewTLS = (uint8_t*)pNewTLS + 12;
@@ -582,11 +586,6 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 		}
 	}
 
-	// Allocate the xbox KPCR structure
-	xbox::KPCR *NewPcr = (xbox::KPCR*)xbox::ExAllocatePool(sizeof(xbox::KPCR));
-	xbox::RtlZeroMemory(NewPcr, sizeof(xbox::KPCR));
-	xbox::NT_TIB *XbTib = &(NewPcr->NtTib);
-	xbox::PKPRCB Prcb = &(NewPcr->PrcbData);
 	// Note : As explained above (at EmuKeSetPcr), Cxbx cannot allocate one NT_TIB and KPRCB
 	// structure per thread, since Cxbx currently doesn't do thread-switching.
 	// Thus, the only way to give each thread it's own PrcbData.CurrentThread, is to put the
@@ -601,59 +600,53 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 
 	// Copy the Nt TIB over to the emulated TIB :
 	{
-		memcpy(XbTib, GetNtTib(), sizeof(NT_TIB));
+		xbox::NT_TIB *XbTib = &(xbox::KiPcr.NtTib);
+		std::memcpy(XbTib, GetNtTib(), sizeof(NT_TIB));
 		// Fixup the TIB self pointer :
-		NewPcr->NtTib.Self = XbTib;
-		// Set the stack base - TODO : Verify this, doesn't look right?
-		NewPcr->NtTib.StackBase = pNewTLS;
+		xbox::KiPcr.NtTib.Self = XbTib;
 
 		// Write the Xbox stack base to the Host, allows ConvertThreadToFiber to work correctly
 		// Test case: DOA3
-		__writefsdword(TIB_StackBase, (DWORD)NewPcr->NtTib.StackBase);
-		__writefsdword(TIB_StackLimit, (DWORD)NewPcr->NtTib.StackLimit);
+		__writefsdword(TIB_StackBase, (DWORD)XbTib->StackBase);
+		__writefsdword(TIB_StackLimit, (DWORD)XbTib->StackLimit);
 	}
-
-	// Set flat address of this PCR
-	NewPcr->SelfPcr = NewPcr;
-	// Set pointer to Prcb
-	NewPcr->Prcb = Prcb;
 
 	// Initialize the prcb :
 	{
 		// TODO : Once we do our own thread-switching (as mentioned above),
 		// we can also start using Prcb->DpcListHead instead of DpcQueue :
-		InitializeListHead(&(Prcb->DpcListHead));
-		Prcb->DpcRoutineActive = FALSE;
-
-		NewPcr->Irql = PASSIVE_LEVEL; // See KeLowerIrql;
+		// TODO: check this later
+		//KiXboxPcr->Irql = PASSIVE_LEVEL; // See KeLowerIrql;
 	}
 
 	// Initialize a fake PrcbData.CurrentThread 
 	{
-		xbox::ETHREAD *EThread = (xbox::ETHREAD*)xbox::ExAllocatePool(sizeof(xbox::ETHREAD)); // Clear, to prevent side-effects on random contents
-		xbox::RtlZeroMemory(EThread, sizeof(xbox::ETHREAD));
-
-		EThread->Tcb.TlsData = pNewTLS;
-		EThread->UniqueThread = GetCurrentThreadId();
-		// Set PrcbData.CurrentThread
-		Prcb->CurrentThread = (xbox::KTHREAD*)EThread;
+		kThread->TlsData = pNewTLS;
 		// Initialize the thread header and its wait list
-		Prcb->CurrentThread->Header.Type = xbox::ThreadObject;
-		Prcb->CurrentThread->Header.Size = sizeof(xbox::KTHREAD) / sizeof(xbox::long_xt);
-		InitializeListHead(&Prcb->CurrentThread->Header.WaitListHead);
+		kThread->Header.Type = xbox::ThreadObject;
+		kThread->Header.Size = sizeof(xbox::KTHREAD) / sizeof(xbox::long_xt);
+		InitializeListHead(&kThread->Header.WaitListHead);
 		// Also initialize the timer associated with the thread
-		xbox::KeInitializeTimer(&Prcb->CurrentThread->Timer);
-		xbox::PKWAIT_BLOCK WaitBlock = &Prcb->CurrentThread->TimerWaitBlock;
-		WaitBlock->Object = &Prcb->CurrentThread->Timer;
+		xbox::KeInitializeTimer(&kThread->Timer);
+		xbox::PKWAIT_BLOCK WaitBlock = &kThread->TimerWaitBlock;
+		WaitBlock->Object = &kThread->Timer;
 		WaitBlock->WaitKey = (xbox::cshort_xt)STATUS_TIMEOUT;
 		WaitBlock->WaitType = xbox::WaitAny;
-		WaitBlock->Thread = Prcb->CurrentThread;
-		WaitBlock->WaitListEntry.Flink = &Prcb->CurrentThread->Timer.Header.WaitListHead;
-		WaitBlock->WaitListEntry.Blink = &Prcb->CurrentThread->Timer.Header.WaitListHead;
+		WaitBlock->Thread = kThread;
+		WaitBlock->WaitListEntry.Flink = &kThread->Timer.Header.WaitListHead;
+		WaitBlock->WaitListEntry.Blink = &kThread->Timer.Header.WaitListHead;
+		// Initialize thread state and priority
+		kThread->State = xbox::Initialized;
+		kThread->Quantum = xbox::KiUniqueProcess.ThreadQuantum;
+		kThread->BasePriority = xbox::KiUniqueProcess.BasePriority;
+		kThread->Priority = kThread->BasePriority;
+		kThread->DisableBoost = xbox::KiUniqueProcess.DisableBoost;
+		// Insert the kthread in the thread list
+		InsertTailList(&xbox::KiUniqueProcess.ThreadListHead, &kThread->ThreadListEntry);
 	}
 
 	// Make the KPCR struct available to KeGetPcr()
-	EmuKeSetPcr(NewPcr);
+	//EmuKeSetPcr(NewPcr);
 
 	EmuLog(LOG_LEVEL::DEBUG, "Installed KPCR in TIB_ArbitraryDataSlot (with pTLS = 0x%.8X)", pTLS);
 }

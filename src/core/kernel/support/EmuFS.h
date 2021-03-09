@@ -33,7 +33,7 @@
 extern void EmuInitFS();
 
 // generate fs segment selector
-extern void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData);
+extern void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData, xbox::PKTHREAD kThread);
 
 typedef struct
 {

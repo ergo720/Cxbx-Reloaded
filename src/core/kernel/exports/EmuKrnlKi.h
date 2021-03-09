@@ -47,6 +47,11 @@ namespace xbox
 		int Acquired;
 	} KI_TIMER_LOCK;
 
+	inline KPROCESS KiUniqueProcess = {};
+	inline KPCR KiPcr = {};
+	inline boolean_xt KiCpuIdle = FALSE;
+	inline LIST_ENTRY KiThreadReadyListHead[THREAD_PRIORITY_TABLE_SIZE];
+	inline ulong_xt KiThreadReadyByPriorityBitmask;
 
 	xbox::void_xt KiInitSystem();
 
@@ -133,6 +138,11 @@ namespace xbox
 	xbox::void_xt FASTCALL KiWaitSatisfyAll
 	(
 		IN PKWAIT_BLOCK WaitBlock
+	);
+
+	xbox::void_xt FASTCALL KiReadyThread
+	(
+		IN PKTHREAD Thread
 	);
 };
 

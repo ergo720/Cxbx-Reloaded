@@ -1689,8 +1689,7 @@ void CxbxKrnlRegisterThread(HANDLE hThread)
 			hThread = hDupHandle; // Thread handle was duplicated, continue registration with the duplicate
 		}
 		else {
-			auto message = CxbxGetLastErrorString("DuplicateHandle");
-			EmuLog(LOG_LEVEL::WARNING, message.c_str());
+			CxbxKrnlCleanupEx(CXBXR_MODULE::PS, CxbxGetLastErrorString("DuplicateHandle").c_str());
 		}
 	}
 

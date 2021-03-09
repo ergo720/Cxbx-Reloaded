@@ -97,13 +97,29 @@ xbox::LIST_ENTRY KiWaitInListHead;
 
 xbox::void_xt xbox::KiInitSystem()
 {
-	unsigned int i;
+	// init xbox process
+	InitializeListHead(&KiUniqueProcess.ThreadListHead);
+	InitializeListHead(&KiUniqueProcess.ReadyListHead);
+	KiUniqueProcess.ThreadQuantum = XBOX_THREAD_QUANTUM;
+	KiUniqueProcess.BasePriority = XBOX_PROCESS_NORMAL_PRIORITY;
+
+	// init xbox PCR and PRCB
+	KiPcr.SelfPcr = &KiPcr;
+	KiPcr.Prcb = &(KiPcr.PrcbData);
+	InitializeListHead(&(KiPcr.Prcb->DpcListHead));
+	KiPcr.Prcb->DpcRoutineActive = FALSE;
+
+	// init thread ready list and bitmask
+	for (unsigned i = 0; i < THREAD_PRIORITY_TABLE_SIZE; i++) {
+		InitializeListHead(&KiThreadReadyListHead[i]);
+	}
+	KiThreadReadyByPriorityBitmask = 0;
 
 	InitializeListHead(&KiWaitInListHead);
 
 	KiTimerMtx.Acquired = 0;
 	KeInitializeDpc(&KiTimerExpireDpc, KiTimerExpiration, NULL);
-	for (i = 0; i < TIMER_TABLE_SIZE; i++) {
+	for (unsigned i = 0; i < TIMER_TABLE_SIZE; i++) {
 		InitializeListHead(&KiTimerTableListHead[i].Entry);
 		KiTimerTableListHead[i].Time.u.HighPart = 0xFFFFFFFF;
 		KiTimerTableListHead[i].Time.u.LowPart = 0;
@@ -875,4 +891,58 @@ xbox::void_xt FASTCALL xbox::KiWaitSatisfyAll
 	} while (WaitBlock1 != WaitBlock);
 
 	return;
+}
+
+xbox::void_xt FASTCALL xbox::KiReadyThread
+(
+	IN PKTHREAD Thread
+)
+{
+	LOG_FUNC_ONE_ARG((PVOID)Thread);
+
+	char_xt Preempted = Thread->Preempted;
+	Thread->Preempted = FALSE;
+	PKPRCB Prcb = KeGetCurrentPrcb();
+
+	if (KiCpuIdle == TRUE) {
+		// We are running the idle thread, preempt it
+		KiCpuIdle = FALSE;
+		Thread->State = Standby;
+		Prcb->NextThread = Thread;
+		return;
+	}
+
+	if (Prcb->NextThread == nullptr) {
+		if (Thread->Priority > Prcb->CurrentThread->Priority) {
+			// We have a higher priority than the currently running thread, preempt it
+			Prcb->CurrentThread->Preempted = TRUE;
+			Thread->State = Standby;
+			Prcb->NextThread = Thread;
+			return;
+		}
+	}
+	else {
+		if (Thread->Priority > Prcb->NextThread->Priority) {
+			// We have a higher priority than the next scheduled thread, preempt it
+			PKTHREAD NextThread = Prcb->NextThread;
+			NextThread->Preempted = FALSE;
+			Preempted = TRUE;
+			Thread->State = Standby;
+			Prcb->NextThread = Thread;
+			Thread = NextThread;
+		}
+	}
+
+	// If the thread was preempted, insert it at the head of the list to avoid starving it
+	Thread->State = Ready;
+	if (Preempted == TRUE) {
+		InsertHeadList(&KiThreadReadyListHead[Thread->Priority], &Thread->WaitListEntry);
+	}
+	else {
+		InsertTailList(&KiThreadReadyListHead[Thread->Priority], &Thread->WaitListEntry);
+	}
+
+	// Set the bit corresponding to the priority of the thread that we just added so we know
+	// there is at least a single thread ready at that priority
+	KiThreadReadyByPriorityBitmask |= (1 << Thread->Priority);
 }

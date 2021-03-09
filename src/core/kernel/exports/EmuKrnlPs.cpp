@@ -39,12 +39,17 @@
 #include "core\kernel\init\CxbxKrnl.h" // For CxbxKrnl_TLS
 #include "core\kernel\support\Emu.h" // For EmuLog(LOG_LEVEL::WARNING, )
 #include "core\kernel\support\EmuFS.h" // For EmuGenerateFS
+#include "core\kernel\exports\EmuKrnlKi.h"
 
 // prevent name collisions
 namespace NtDll
 {
 #include "core\kernel\support\EmuNtDll.h"
 };
+
+#ifdef RtlZeroMemory
+#undef RtlZeroMemory
+#endif
 
 #define PSP_MAX_CREATE_THREAD_NOTIFY 16 /* TODO : Should be 8 */
 
@@ -54,6 +59,7 @@ typedef struct _PCSTProxyParam
 	IN PVOID  StartRoutine;
 	IN PVOID  StartContext;
 	IN PVOID  SystemRoutine;
+	IN xbox::PKTHREAD kThread;
 }
 PCSTProxyParam;
 
@@ -66,29 +72,31 @@ void LOG_PCSTProxy
 (
 	PVOID StartRoutine,
 	PVOID StartContext,
-	PVOID SystemRoutine
+	PVOID SystemRoutine,
+	PVOID kThread
 )
 {
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(StartRoutine)
 		LOG_FUNC_ARG(StartContext)
 		LOG_FUNC_ARG(SystemRoutine)
+		LOG_FUNC_ARG(kThread)
 		LOG_FUNC_END;
 }
 
 // Overload which doesn't change affinity
-void InitXboxThread()
+void InitXboxThread(xbox::PKTHREAD kThread)
 {
 	// initialize FS segment selector
-	EmuGenerateFS(CxbxKrnl_TLS, CxbxKrnl_TLSData);
+	EmuGenerateFS(CxbxKrnl_TLS, CxbxKrnl_TLSData, kThread);
 
 	_controlfp(_PC_53, _MCW_PC); // Set Precision control to 53 bits (verified setting)
 	_controlfp(_RC_NEAR, _MCW_RC); // Set Rounding control to near (unsure about this)
 }
 
-void InitXboxThread(DWORD_PTR cores)
+void InitXboxThread(xbox::PKTHREAD kThread, DWORD_PTR cores)
 {
-	InitXboxThread();
+	InitXboxThread(kThread);
 
 	if (!g_UseAllCores) {
 		// Run this thread solely on the indicated core(s) :
@@ -114,11 +122,12 @@ static unsigned int WINAPI PCSTProxy
 	LOG_PCSTProxy(
 		params.StartRoutine,
 		params.StartContext,
-		params.SystemRoutine);
+		params.SystemRoutine,
+		params.kThread);
 
 
 	// Do minimal thread initialization
-	InitXboxThread();
+	InitXboxThread(params.kThread);
 
 	auto routine = (xbox::PKSYSTEM_ROUTINE)params.SystemRoutine;
 	// Debugging notice : When the below line shows up with an Exception dialog and a
@@ -218,6 +227,8 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 		LOG_FUNC_ARG(SystemRoutine)
 		LOG_FUNC_END;
 
+	ntstatus_xt status = status_success;
+
 	// TODO : Arguments to use : TlsDataSize, DebuggerThread
 
 	// use default kernel stack size if lesser specified
@@ -225,22 +236,11 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 		KernelStackSize = KERNEL_STACK_SIZE;
 
 	// Double the stack size, this is to account for the overhead HLE patching adds to the stack
-	KernelStackSize *= 2;
-
 	// round up to the next page boundary if un-aligned
-	KernelStackSize = RoundUp(KernelStackSize, PAGE_SIZE);
+	KernelStackSize = RoundUp(KernelStackSize * 2, PAGE_SIZE);
 
     // create thread, using our special proxy technique
     {
-        DWORD dwThreadId = 0;
-
-        // PCSTProxy is responsible for cleaning up this pointer
-		PCSTProxyParam *iPCSTProxyParam = new PCSTProxyParam;
-
-        iPCSTProxyParam->StartRoutine = (PVOID)StartRoutine;
-        iPCSTProxyParam->StartContext = StartContext;
-        iPCSTProxyParam->SystemRoutine = (PVOID)SystemRoutine; // NULL, XapiThreadStartup or unknown?
-
 		/*
 		// call thread notification routine(s)
 		if (g_iThreadNotificationCount != 0)
@@ -263,7 +263,31 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 			}
 		}*/
 
+		PKTHREAD kThread = static_cast<PKTHREAD>(ExAllocatePool(sizeof(KTHREAD)));
+		if (kThread == nullptr) {
+			status = status_insufficient_resources;
+			RETURN(status);
+		}
+		RtlZeroMemory(kThread, sizeof(KTHREAD));
+
+		DWORD dwThreadId = 0;
+
+		// PCSTProxy is responsible for cleaning up this pointer
+		PCSTProxyParam *iPCSTProxyParam = new PCSTProxyParam;
+
+		iPCSTProxyParam->StartRoutine = (PVOID)StartRoutine;
+		iPCSTProxyParam->StartContext = StartContext;
+		iPCSTProxyParam->SystemRoutine = (PVOID)SystemRoutine; // NULL, XapiThreadStartup or unknown?
+		iPCSTProxyParam->kThread = kThread;
+
         HANDLE handle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, KernelStackSize, PCSTProxy, iPCSTProxyParam, CREATE_SUSPENDED, reinterpret_cast<unsigned int*>(&dwThreadId)));
+		if (handle == 0) {
+			delete iPCSTProxyParam;
+			ExFreePool(kThread);
+			status = status_insufficient_resources;
+			RETURN(status);
+		}
+
 		*ThreadHandle = handle;
         if (ThreadId != NULL)
             *ThreadId = dwThreadId;
@@ -274,6 +298,8 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 		}
 
 		CxbxKrnlRegisterThread(handle);
+
+		KiReadyThread(kThread);
 
 		// Now that ThreadId is populated and affinity is changed, resume the thread (unless the guest passed CREATE_SUSPENDED)
 		if (!CreateSuspended) {
@@ -286,7 +312,7 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 		EmuLog(LOG_LEVEL::DEBUG, "Created Xbox proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]", handle, dwThreadId);
 	}
 
-	RETURN(xbox::status_success);
+	RETURN(status);
 }
 
 // ******************************************************************
