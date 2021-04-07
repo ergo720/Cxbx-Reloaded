@@ -39,6 +39,45 @@
 #define XPR_IMAGE_DATA_SIZE (XPR_IMAGE_WH * XPR_IMAGE_WH) / 2
 #define XPR_IMAGE_HDR_SIZE 2048
 
+// debug/retail XOR keys
+const uint32_t XOR_EP_DEBUG                            = 0x94859D4B; // Entry Point (Debug)
+const uint32_t XOR_EP_RETAIL                           = 0xA8FC57AB; // Entry Point (Retail)
+const uint32_t XOR_KT_DEBUG                            = 0xEFB1F152; // Kernel Thunk (Debug)
+const uint32_t XOR_KT_RETAIL                           = 0x5B6D40B6; // Kernel Thunk (Retail)
+
+// Sega Chihiro XOR keys
+const uint32_t XOR_EP_CHIHIRO                          = 0x40B5C16E;
+const uint32_t XOR_KT_CHIHIRO                          = 0x2290059D;
+
+// game region flags for Xbe certificate
+const uint32_t XBEIMAGE_GAME_REGION_NA                 = 0x00000001;
+const uint32_t XBEIMAGE_GAME_REGION_JAPAN              = 0x00000002;
+const uint32_t XBEIMAGE_GAME_REGION_RESTOFWORLD        = 0x00000004;
+const uint32_t XBEIMAGE_GAME_REGION_MANUFACTURING      = 0x80000000;
+
+// media type flags for Xbe certificate
+const uint32_t XBEIMAGE_MEDIA_TYPE_HARD_DISK           = 0x00000001;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_X2              = 0x00000002;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_CD              = 0x00000004;
+const uint32_t XBEIMAGE_MEDIA_TYPE_CD                  = 0x00000008;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_5_RO            = 0x00000010;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_9_RO            = 0x00000020;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_5_RW            = 0x00000040;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_9_RW            = 0x00000080;
+const uint32_t XBEIMAGE_MEDIA_TYPE_DONGLE              = 0x00000100;
+const uint32_t XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD         = 0x00000200;
+const uint32_t XBEIMAGE_MEDIA_TYPE_NONSECURE_HARD_DISK = 0x40000000;
+const uint32_t XBEIMAGE_MEDIA_TYPE_NONSECURE_MODE      = 0x80000000;
+const uint32_t XBEIMAGE_MEDIA_TYPE_MEDIA_MASK          = 0x00FFFFFF;
+
+// section type flags for Xbe
+const uint32_t XBEIMAGE_SECTION_WRITEABLE              = 0x00000001;
+const uint32_t XBEIMAGE_SECTION_PRELOAD                = 0x00000002;
+const uint32_t XBEIMAGE_SECTION_EXECUTABLE             = 0x00000004;
+const uint32_t XBEIMAGE_SECTION_INSERTFILE             = 0x00000008;
+const uint32_t XBEIMAGE_SECTION_HEAD_PAGE_READONLY     = 0x00000010;
+const uint32_t XBEIMAGE_SECTION_TAIL_PAGE_READONLY     = 0x00000020;
+
 namespace xbox
 {
 	typedef struct _XBE_SECTION	XBEIMAGE_SECTION, *PXBEIMAGE_SECTION;
@@ -82,6 +121,7 @@ class Xbe : public Error
         const char *GameRegionToString();
 
         XbeType GetXbeType();
+        uint32_t GetXorKey(bool Entry);
 
         // Xbe header
         #include "AlignPrefix1.h"
@@ -276,6 +316,14 @@ class Xbe : public Error
         // return a modifiable pointer to logo bitmap data
         uint8_t *GetLogoBitmap(uint32_t x_dwSize);
 
+        // Entry point address XOR keys per Xbe type (Retail, Debug or Chihiro) :
+        static constexpr uint32_t XOR_EP_KEY[3] = { XOR_EP_RETAIL, XOR_EP_DEBUG, XOR_EP_CHIHIRO };
+        // Kernel thunk address XOR keys per Xbe type (Retail, Debug or Chihiro) :
+        static constexpr uint32_t XOR_KT_KEY[3] = { XOR_KT_RETAIL, XOR_KT_DEBUG, XOR_KT_CHIHIRO };
+        // The type of this Xbe
+        XbeType m_Type;
+        // The index to calculate the xor key of this Xbe
+        int m_XorKeyIdx;
 
         // used to encode/decode logo bitmap data
         union LogoRLE
@@ -356,42 +404,4 @@ class Xbe : public Error
 		*m_xprImage;
 };
 
-// debug/retail XOR keys
-const uint32_t XOR_EP_DEBUG                            = 0x94859D4B; // Entry Point (Debug)
-const uint32_t XOR_EP_RETAIL                           = 0xA8FC57AB; // Entry Point (Retail)
-const uint32_t XOR_KT_DEBUG                            = 0xEFB1F152; // Kernel Thunk (Debug)
-const uint32_t XOR_KT_RETAIL                           = 0x5B6D40B6; // Kernel Thunk (Retail)
-
-// Sega Chihiro XOR keys
-const uint32_t XOR_EP_CHIHIRO							 = 0x40B5C16E;
-const uint32_t XOR_KT_CHIHIRO							 = 0x2290059D;
-
-// game region flags for Xbe certificate
-const uint32_t XBEIMAGE_GAME_REGION_NA                 = 0x00000001;
-const uint32_t XBEIMAGE_GAME_REGION_JAPAN              = 0x00000002;
-const uint32_t XBEIMAGE_GAME_REGION_RESTOFWORLD        = 0x00000004;
-const uint32_t XBEIMAGE_GAME_REGION_MANUFACTURING      = 0x80000000;
-
-// media type flags for Xbe certificate
-const uint32_t XBEIMAGE_MEDIA_TYPE_HARD_DISK           = 0x00000001;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_X2              = 0x00000002;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_CD              = 0x00000004;
-const uint32_t XBEIMAGE_MEDIA_TYPE_CD                  = 0x00000008;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_5_RO            = 0x00000010;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_9_RO            = 0x00000020;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_5_RW            = 0x00000040;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DVD_9_RW            = 0x00000080;
-const uint32_t XBEIMAGE_MEDIA_TYPE_DONGLE              = 0x00000100;
-const uint32_t XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD         = 0x00000200;
-const uint32_t XBEIMAGE_MEDIA_TYPE_NONSECURE_HARD_DISK = 0x40000000;
-const uint32_t XBEIMAGE_MEDIA_TYPE_NONSECURE_MODE      = 0x80000000;
-const uint32_t XBEIMAGE_MEDIA_TYPE_MEDIA_MASK          = 0x00FFFFFF;
-
-// section type flags for Xbe
-const uint32_t XBEIMAGE_SECTION_WRITEABLE				 = 0x00000001;
-const uint32_t XBEIMAGE_SECTION_PRELOAD				 = 0x00000002;
-const uint32_t XBEIMAGE_SECTION_EXECUTABLE			 = 0x00000004;
-const uint32_t XBEIMAGE_SECTION_INSERTFILE			 = 0x00000008;
-const uint32_t XBEIMAGE_SECTION_HEAD_PAGE_READONLY	 = 0x00000010;
-const uint32_t XBEIMAGE_SECTION_TAIL_PAGE_READONLY	 = 0x00000020;
 #endif

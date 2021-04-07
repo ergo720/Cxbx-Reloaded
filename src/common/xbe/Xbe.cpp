@@ -322,10 +322,41 @@ Xbe::Xbe(const char *x_szFilename, bool bFromGUI)
 
 cleanup:
 
-    if (HasError())
-    {
+    if (HasError()) {
         printf("FAILED!\n");
         printf("Xbe::Xbe: ERROR -> %s\n", GetError().c_str());
+    }
+    else {
+        // Ported from Dxbx's XbeExplorer
+        // Detect if the XBE is for Chihiro (Untested!) :
+        // This is based on https://github.com/radare/radare2/blob/master/libr/bin/p/bin_xbe.c#L45
+        if ((m_Header.dwEntryAddr & XBOX_WRITE_COMBINED_BASE) == SEGABOOT_EP_XOR) {
+            m_Type = XbeType::xtChihiro;
+            m_XorKeyIdx = to_underlying(m_Type);
+        }
+        // Check for Debug XBE, using high bit of the kernel thunk address :
+        // (DO NOT test like https://github.com/radare/radare2/blob/master/libr/bin/p/bin_xbe.c#L49 !)
+        else if ((m_Header.dwKernelImageThunkAddr & KSEG0_BASE) > 0) {
+            // If the XBE path contains a boot.id, it must be a Chihiro title.
+            // This is necessary as some Chihiro games use the Debug xor instead of the Chihiro ones,
+            // which means we cannot rely on that alone.
+            std::string xbeDirectory(m_szPath);
+            std::replace(xbeDirectory.begin(), xbeDirectory.end(), ';', '/');
+            xbeDirectory = xbeDirectory.substr(0, xbeDirectory.find_last_of("\\/"));
+            if (std::filesystem::exists(xbeDirectory + "/boot.id")) {
+                m_Type = XbeType::xtChihiro;
+                m_XorKeyIdx = to_underlying(XbeType::xtDebug);
+            }
+            else {
+                m_Type = XbeType::xtDebug;
+                m_XorKeyIdx = to_underlying(m_Type);
+            }
+        }
+        else {
+            // Otherwise, the XBE is a Retail build:
+            m_Type = XbeType::xtRetail;
+            m_XorKeyIdx = to_underlying(m_Type);
+        }
     }
 
     fclose(XbeFile);
@@ -811,19 +842,17 @@ bool Xbe::CheckSectionIntegrity(uint32_t sectionIndex)
     }
 }
 
-// ported from Dxbx's XbeExplorer
 XbeType Xbe::GetXbeType()
 {
-	// Detect if the XBE is for Chihiro (Untested!) :
-	// This is based on https://github.com/radare/radare2/blob/master/libr/bin/p/bin_xbe.c#L45
-	if ((m_Header.dwEntryAddr & XBOX_WRITE_COMBINED_BASE) == SEGABOOT_EP_XOR)
-		return XbeType::xtChihiro;
+	return m_Type;
+}
 
-	// Check for Debug XBE, using high bit of the kernel thunk address :
-	// (DO NOT test like https://github.com/radare/radare2/blob/master/libr/bin/p/bin_xbe.c#L49 !)
-	if ((m_Header.dwKernelImageThunkAddr & KSEG0_BASE) > 0)
-		return XbeType::xtDebug;
-
-	// Otherwise, the XBE is a Retail build :
-	return XbeType::xtRetail;
+uint32_t Xbe::GetXorKey(bool Entry)
+{
+    if (Entry) {
+        return XOR_EP_KEY[m_XorKeyIdx];
+    }
+    else {
+        return XOR_KT_KEY[m_XorKeyIdx];
+    }
 }

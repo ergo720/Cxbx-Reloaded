@@ -169,11 +169,6 @@ void CxbxLaunchXbe(void(*Entry)())
 	Entry();
 }
 
-// Entry point address XOR keys per Xbe type (Retail, Debug or Chihiro) :
-const DWORD XOR_EP_KEY[3] = { XOR_EP_RETAIL, XOR_EP_DEBUG, XOR_EP_CHIHIRO };
-// Kernel thunk address XOR keys per Xbe type (Retail, Debug or Chihiro) :
-const DWORD XOR_KT_KEY[3] = { XOR_KT_RETAIL, XOR_KT_DEBUG, XOR_KT_CHIHIRO };
-
 // Executable image header pointers (it's contents can be switched between
 // Exe-compatibility and Xbe-identical mode, using RestoreExeImageHeader
 // vs RestoreXbeImageHeader) :
@@ -1165,7 +1160,7 @@ void CxbxKrnlEmulate(unsigned int reserved_systems, blocks_reserved_t blocks_res
 		void* XbeTlsData = (XbeTls != nullptr) ? (void*)CxbxKrnl_Xbe->m_TLS->dwDataStartAddr : nullptr;
 		// Decode Entry Point
 		xbox::addr_xt EntryPoint = CxbxKrnl_Xbe->m_Header.dwEntryAddr;
-		EntryPoint ^= XOR_EP_KEY[to_underlying(CxbxKrnl_Xbe->GetXbeType())];
+		EntryPoint ^= CxbxKrnl_Xbe->GetXorKey(true);
 		// Launch XBE
 		CxbxKrnlInit(
 			XbeTlsData, 
@@ -1463,7 +1458,7 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// Decode kernel thunk table address :
 	uint32_t kt = CxbxKrnl_Xbe->m_Header.dwKernelImageThunkAddr;
-	kt ^= XOR_KT_KEY[to_underlying(CxbxKrnl_Xbe->GetXbeType())];
+	kt ^= CxbxKrnl_Xbe->GetXorKey(false);
 
 	// Process the Kernel thunk table to map Kernel function calls to their actual address :
 	MapThunkTable((uint32_t *)kt, CxbxKrnl_KernelThunkTable);
