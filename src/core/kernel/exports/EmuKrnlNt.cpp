@@ -1774,15 +1774,22 @@ XBSYSAPI EXPORTNUM(224) xbox::ntstatus_xt NTAPI xbox::NtResumeThread
 		LOG_FUNC_ARG_OUT(PreviousSuspendCount)
 		LOG_FUNC_END;
 
-	NTSTATUS ret = NtDll::NtResumeThread(
-		ThreadHandle, 
-		(::PULONG)PreviousSuspendCount);
+	// Guard against PsTerminateSystemThread destroying kthread while we are trying to resume the thread
+	std::unique_lock lck(g_ThrMtx);
 
-	// TODO : Once we do our own thread-switching, implement NtResumeThread using KetResumeThread
+	// NOTE: this should actually use the Ob functions to search for the thread object pointed by the supplied thread handle
+	const auto &it = SearchThread(ThreadHandle);
+	if (it == g_Threads.end()) {
+		RETURN(status_invalid_handle);
+	}
 
-	//Sleep(10);
+	ulong_xt prev_count = KeResumeThread(it->second.Kthread);
 
-	RETURN(ret);
+	if (PreviousSuspendCount) {
+		*PreviousSuspendCount = prev_count;
+	}
+
+	RETURN(status_success);
 }
 
 // ******************************************************************
@@ -1997,13 +2004,28 @@ XBSYSAPI EXPORTNUM(231) xbox::ntstatus_xt NTAPI xbox::NtSuspendThread
 		LOG_FUNC_ARG_OUT(PreviousSuspendCount)
 		LOG_FUNC_END;
 
-	NTSTATUS ret = NtDll::NtSuspendThread(
-		ThreadHandle, 
-		(::PULONG)PreviousSuspendCount);
+	// Guard against PsTerminateSystemThread destroying kthread while we are trying to suspend the thread
+	std::unique_lock lck(g_ThrMtx);
 
-	// TODO : Once we do our own thread-switching, implement NtSuspendThread using KeSuspendThread
+	// NOTE: this should actually use the Ob functions to search for the thread object pointed by the supplied thread handle
+	const auto &it = SearchThread(ThreadHandle);
+	if (it == g_Threads.end()) {
+		RETURN(status_invalid_handle);
+	}
 
-	RETURN(ret);
+	ulong_xt prev_count = KeSuspendThread(it->second.Kthread);
+	if (prev_count == 0xff) {
+		RETURN(status_suspend_count_exceeded);
+	}
+	else if (prev_count == 0x80) {
+		RETURN(status_thread_is_terminating);
+	}
+
+	if (PreviousSuspendCount) {
+		*PreviousSuspendCount = prev_count;
+	}
+
+	RETURN(status_success);
 }
 
 // ******************************************************************

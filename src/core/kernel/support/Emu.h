@@ -25,9 +25,11 @@
 #ifndef EMU_H
 #define EMU_H
 
+#include "core\kernel\common\types.h"
 #include "common\xbe\Xbe.h"
 #include "Logging.h"
-
+#include <mutex>
+#include <map>
 #include <windows.h>
 #include <multimon.h>
 
@@ -84,7 +86,19 @@ typedef struct DUMMY_KERNEL
 	IMAGE_SECTION_HEADER SectionHeader;
 } *PDUMMY_KERNEL;
 
+struct THREAD_DATA {
+	xbox::PKTHREAD Kthread;
+	THREAD_DATA::THREAD_DATA(xbox::PKTHREAD kthread) : Kthread(kthread) {};
+};
+
 extern bool g_DisablePixelShaders;
 extern bool g_UseAllCores;
 extern bool g_SkipRdtscPatching;
+extern std::map<xbox::HANDLE, THREAD_DATA> g_Threads;
+extern std::recursive_mutex g_ThrMtx;
+
+void RegisterThread(xbox::HANDLE hThread, xbox::PKTHREAD Kthread);
+void RemoveThread(xbox::HANDLE hThread);
+std::map<xbox::HANDLE, THREAD_DATA>::iterator SearchThread(xbox::HANDLE hThread);
+
 #endif

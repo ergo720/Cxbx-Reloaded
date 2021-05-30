@@ -49,6 +49,8 @@ volatile bool    g_bPrintfOn = true;
 bool g_DisablePixelShaders = false;
 bool g_UseAllCores = false;
 bool g_SkipRdtscPatching = false;
+std::map<xbox::HANDLE, THREAD_DATA> g_Threads;
+std::recursive_mutex g_ThrMtx;
 
 // Delta added to host SystemTime, used in KiClockIsr and KeSetSystemTime
 // This shouldn't need to be atomic, but because raising the IRQL to high lv in KeSetSystemTime doesn't really stop KiClockIsr from running,
@@ -430,6 +432,41 @@ bool ExceptionManager::AddVEH(unsigned long first, PVECTORED_EXCEPTION_HANDLER v
 		}
 	}
 	return isSuccess;
+}
+
+void RegisterThread(xbox::HANDLE hThread, xbox::PKTHREAD Kthread)
+{
+	std::unique_lock lck(g_ThrMtx);
+
+	// The handles should always be unique because we are using the host handles returned by DuplicateHandle as xbox handles
+	[[maybe_unused]] const auto &pair = g_Threads.emplace(std::make_pair(hThread, THREAD_DATA(Kthread)));
+	assert(pair.second == true);
+}
+
+std::map<xbox::HANDLE, THREAD_DATA>::iterator SearchThread(xbox::HANDLE hThread)
+{
+	std::unique_lock lck(g_ThrMtx);
+	return g_Threads.find(hThread);
+}
+
+void RemoveThread(xbox::HANDLE hThread)
+{
+	std::unique_lock lck(g_ThrMtx);
+
+	const auto &it = SearchThread(hThread);
+	if (it != g_Threads.end()) {
+		g_Threads.erase(it);
+	}
+}
+
+void AcquireThreadLock()
+{
+	g_ThrMtx.lock();
+}
+
+void ReleaseThreadLock()
+{
+	g_ThrMtx.unlock();
 }
 
 #ifdef _DEBUG

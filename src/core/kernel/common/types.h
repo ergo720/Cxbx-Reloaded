@@ -100,6 +100,8 @@ inline constexpr dword_xt status_unable_to_free_vm = 0xC000001AL;
 inline constexpr dword_xt status_free_vm_not_at_base = 0xC000009FL;
 inline constexpr dword_xt status_memory_not_allocated = 0xC00000A0L;
 inline constexpr dword_xt status_not_committed = 0xC000002DL;
+inline constexpr dword_xt status_suspend_count_exceeded = 0xC000004A;
+inline constexpr dword_xt status_thread_is_terminating = 0xC000004B;
 
 // ******************************************************************
 // * Registry value types
@@ -1912,7 +1914,7 @@ typedef struct _ETHREAD
 {
     struct _KTHREAD Tcb;
     uchar_xt           UnknownA[0x1C]; // 0x110
-    dword_xt           UniqueThread;   // 0x12C
+	HANDLE             UniqueThread;   // 0x12C
 }
 ETHREAD, *PETHREAD;
 

@@ -630,9 +630,7 @@ void CxbxInitWindow(bool bFullInit)
         // We set the priority of this thread a bit higher, to assure reliable timing :
         SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
         g_AffinityPolicy->SetAffinityOther(hThread);
-
-        CxbxKrnlRegisterThread(hThread);
-        CloseHandle(hThread); // CxbxKrnlRegisterThread duplicates the handle so we can close this one
+        CloseHandle(hThread); // InitXboxThread duplicates the handle so we can close this one
     }
 
 /* TODO : Port this Dxbx code :
@@ -1867,8 +1865,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 // rendering window message procedure
 static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    static bool bAutoPaused = false;
-
 	const LRESULT imguiResult = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 	if (imguiResult != 0) return imguiResult;
 
@@ -2035,27 +2031,10 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         {
             switch(wParam)
             {
-                case SIZE_RESTORED:
-                case SIZE_MAXIMIZED:
-                {
-                    if(bAutoPaused)
-                    {
-                        bAutoPaused = false;
-                        CxbxKrnlResume();
-                    }
-                }
-                break;
-
                 case SIZE_MINIMIZED:
                 {
                     if(g_XBVideo.bFullScreen)
                         CxbxKrnlCleanup(nullptr);
-
-                    if(!g_bEmuSuspended)
-                    {
-                        bAutoPaused = true;
-                        CxbxKrnlSuspend();
-                    }
                 }
                 break;
             }
@@ -2164,7 +2143,7 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 	CxbxSetThreadName("Cxbx Timing Thread");
 
     // since callbacks come from here
-	InitXboxThread();
+	InitAndRegisterXboxThread();
 
     EmuLog(LOG_LEVEL::DEBUG, "Timing thread is running.");
 

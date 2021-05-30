@@ -37,4 +37,6 @@ namespace xbox
 	(
 		IN PKTIMER Timer
 	);
+
+	void_xt KeFreePcr();
 }

@@ -188,39 +188,6 @@ void EmuKeSetPcr(xbox::KPCR *Pcr)
 	__writefsdword(TIB_ArbitraryDataSlot, (DWORD)Pcr);
 }
 
-void EmuKeFreePcr()
-{
-	// NOTE: don't call KeGetPcr because that one creates a new pcr for the thread when __readfsdword returns nullptr, which we don't want
-	xbox::PKPCR Pcr = reinterpret_cast<xbox::PKPCR>(__readfsdword(TIB_ArbitraryDataSlot));
-
-	if (Pcr) {
-		// tls can be nullptr
-		xbox::PVOID Dummy;
-		xbox::ulong_xt Size;
-		xbox::ntstatus_xt Status;
-		if (Pcr->NtTib.StackBase) {
-			// NOTE: the tls pointer was increased by 12 bytes to enforce the 16 bytes alignment, so adjust it to reach the correct pointer
-			// that was allocated by xbox::NtAllocateVirtualMemory
-			Dummy = static_cast<xbox::PBYTE>(Pcr->NtTib.StackBase) - 12;
-			Size = xbox::zero;
-			Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free tls
-			assert(Status == xbox::status_success);
-		}
-		Dummy = Pcr->Prcb->CurrentThread;
-		Size = xbox::zero;
-		Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free ethread
-		assert(Status == xbox::status_success);
-		Dummy = Pcr;
-		Size = xbox::zero;
-		Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free pcr
-		assert(Status == xbox::status_success);
-		__writefsdword(TIB_ArbitraryDataSlot, NULL);
-	}
-	else {
-		EmuLog(LOG_LEVEL::WARNING, "__readfsdword in EmuKeFreePcr returned nullptr: was this called from a non-xbox thread?");
-	}
-}
-
 __declspec(naked) void EmuFS_RefreshKPCR()
 {
 	// Backup all registers, call KeGetPcr and then restore all registers
@@ -678,14 +645,19 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 		xbox::RtlZeroMemory(EThread, sizeof(xbox::ETHREAD));
 
 		EThread->Tcb.TlsData = pNewTLS;
-		EThread->UniqueThread = GetCurrentThreadId();
+		HANDLE hDup;
+		[[maybe_unused]] BOOL ret = DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &hDup, 0, FALSE, DUPLICATE_SAME_ACCESS);
+		assert(ret);
+		EThread->UniqueThread = hDup;
 		// Set PrcbData.CurrentThread
 		Prcb->CurrentThread = (xbox::KTHREAD*)EThread;
 		// Initialize the thread header and its wait list
 		Prcb->CurrentThread->Header.Type = xbox::ThreadObject;
 		Prcb->CurrentThread->Header.Size = sizeof(xbox::KTHREAD) / sizeof(xbox::long_xt);
 		InitializeListHead(&Prcb->CurrentThread->Header.WaitListHead);
-		// Also initialize the timer associated with the thread
+		// Also initialize the timer and semaphore associated with the thread
+		xbox::KeInitializeSemaphore(&Prcb->CurrentThread->SuspendSemaphore, 0, 1);
+		Prcb->CurrentThread->SuspendCount = 0;
 		xbox::KeInitializeTimer(&Prcb->CurrentThread->Timer);
 		xbox::PKWAIT_BLOCK WaitBlock = &Prcb->CurrentThread->TimerWaitBlock;
 		WaitBlock->Object = &Prcb->CurrentThread->Timer;

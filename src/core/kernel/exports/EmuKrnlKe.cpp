@@ -142,12 +142,52 @@ xbox::KPCR* WINAPI KeGetPcr()
 	if (Pcr == nullptr) {
 		EmuLog(LOG_LEVEL::WARNING, "KeGetPCR returned nullptr: Was this called from a non-xbox thread?");
 		// Attempt to salvage the situation by calling InitXboxThread to setup KPCR in place
-		InitXboxThread();
+		InitAndRegisterXboxThread();
 		g_AffinityPolicy->SetAffinityXbox();
 		Pcr = (xbox::PKPCR)__readfsdword(TIB_ArbitraryDataSlot);
 	}
 
 	return Pcr;
+}
+
+// ******************************************************************
+// * KeFreePcr()
+// ******************************************************************
+xbox::void_xt xbox::KeFreePcr()
+{
+	// NOTE: don't call KeGetPcr because that one creates a new pcr for the thread when __readfsdword returns nullptr, which we don't want
+	xbox::PKPCR Pcr = reinterpret_cast<xbox::PKPCR>(__readfsdword(TIB_ArbitraryDataSlot));
+
+	if (Pcr) {
+		// Guard against other threads suspending us
+		std::unique_lock lck(g_ThrMtx);
+		RemoveThread(reinterpret_cast<PETHREAD>(Pcr->Prcb->CurrentThread)->UniqueThread);
+
+		// tls can be nullptr
+		xbox::PVOID Dummy;
+		xbox::ulong_xt Size;
+		xbox::ntstatus_xt Status;
+		if (Pcr->NtTib.StackBase) {
+			// NOTE: the tls pointer was increased by 12 bytes to enforce the 16 bytes alignment, so adjust it to reach the correct pointer
+			// that was allocated by xbox::NtAllocateVirtualMemory
+			Dummy = static_cast<xbox::PBYTE>(Pcr->NtTib.StackBase) - 12;
+			Size = xbox::zero;
+			Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free tls
+			assert(Status == xbox::status_success);
+		}
+		Dummy = Pcr->Prcb->CurrentThread;
+		Size = xbox::zero;
+		Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free ethread
+		assert(Status == xbox::status_success);
+		Dummy = Pcr;
+		Size = xbox::zero;
+		Status = xbox::NtFreeVirtualMemory(&Dummy, &Size, XBOX_MEM_RELEASE); // free pcr
+		assert(Status == xbox::status_success);
+		__writefsdword(TIB_ArbitraryDataSlot, NULL);
+	}
+	else {
+		EmuLog(LOG_LEVEL::WARNING, "__readfsdword in EmuKeFreePcr returned nullptr: was this called from a non-xbox thread?");
+	}
 }
 
 // ******************************************************************
@@ -1311,6 +1351,7 @@ XBSYSAPI EXPORTNUM(132) xbox::long_xt NTAPI xbox::KeReleaseSemaphore
 	if (limit_reached || signalstate_overflow) {
 		KiUnlockDispatcherDatabase(orig_irql);
 		ExRaiseStatus(xbox::status_semaphore_limit_exceeded);
+		RETURN(initial_state); // this is wrong, but ExRaiseStatus doesn't do anything at the moment
 	}
 	Semaphore->Header.SignalState = adjusted_signalstate;
 
@@ -1533,11 +1574,27 @@ XBSYSAPI EXPORTNUM(140) xbox::ulong_xt NTAPI xbox::KeResumeThread
 {
 	LOG_FUNC_ONE_ARG(Thread);
 
-	NTSTATUS ret = xbox::status_success;
+	std::unique_lock lck(g_ThrMtx);
+	const auto &it = SearchThread(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+	if (it == g_Threads.end()) {
+		// This will happen if PsTerminateSystemThread has destroyed the thread before we could acquire the lock
+		RETURN(0);
+	}
 
-	LOG_UNIMPLEMENTED();
+	KIRQL OldIrql = KeRaiseIrqlToDpcLevel();
+	char_xt prev_count = Thread->SuspendCount;
 
-	RETURN(ret);
+	if (prev_count != 0) {
+		--Thread->SuspendCount;
+		if (Thread->SuspendCount == 0) {
+			DWORD ret = ResumeThread(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+			assert(ret != (DWORD)-1);
+		}
+	}
+
+	KiUnlockDispatcherDatabase(OldIrql);
+
+	RETURN(prev_count);
 }
 
 XBSYSAPI EXPORTNUM(141) xbox::PLIST_ENTRY NTAPI xbox::KeRundownQueue
@@ -1859,11 +1916,31 @@ XBSYSAPI EXPORTNUM(152) xbox::ulong_xt NTAPI xbox::KeSuspendThread
 {
 	LOG_FUNC_ONE_ARG(Thread);
 
-	NTSTATUS ret = xbox::status_success;
+	std::unique_lock lck(g_ThrMtx);
+	const auto &it = SearchThread(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+	if (it == g_Threads.end()) {
+		// This will happen if PsTerminateSystemThread has destroyed the thread before we could acquire the lock
+		RETURN(0x80);
+	}
 
-	LOG_UNIMPLEMENTED();
+	KIRQL OldIrql = KeRaiseIrqlToDpcLevel();
+	char_xt prev_count = Thread->SuspendCount;
 
-	RETURN(ret);
+	if (prev_count == 0x7f) {
+		KiUnlockDispatcherDatabase(OldIrql);
+		ExRaiseStatus(status_suspend_count_exceeded);
+		RETURN(0xff); // this is wrong, but ExRaiseStatus doesn't do anything at the moment
+	}
+
+	++Thread->SuspendCount;
+	if (prev_count == 0) {
+		DWORD ret = SuspendThread(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+		assert(ret != (DWORD)-1);
+	}
+	
+	KiUnlockDispatcherDatabase(OldIrql);
+
+	RETURN(prev_count);
 }
 
 // ******************************************************************

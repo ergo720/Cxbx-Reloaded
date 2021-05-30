@@ -103,7 +103,7 @@ void ClockThread(TimerObject* Timer)
 		CxbxSetThreadName(Timer->Name.c_str());
 	}
 	if (Timer->IsXboxTimer) {
-		InitXboxThread();
+		InitAndRegisterXboxThread();
 		g_AffinityPolicy->SetAffinityXbox();
 	} else {
 		g_AffinityPolicy->SetAffinityOther();

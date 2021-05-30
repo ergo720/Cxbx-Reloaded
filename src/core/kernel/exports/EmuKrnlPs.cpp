@@ -39,6 +39,9 @@
 #include "core\kernel\init\CxbxKrnl.h" // For CxbxKrnl_TLS
 #include "core\kernel\support\Emu.h" // For EmuLog(LOG_LEVEL::WARNING, )
 #include "core\kernel\support\EmuFS.h" // For EmuGenerateFS
+#include "core\kernel\exports\EmuKrnlKe.h"
+#include <map>
+#include <mutex>
 
 // prevent name collisions
 namespace NtDll
@@ -49,13 +52,19 @@ namespace NtDll
 #define PSP_MAX_CREATE_THREAD_NOTIFY 16 /* TODO : Should be 8 */
 
 // PsCreateSystemThread proxy parameters
-typedef struct _PCSTProxyParam
+struct PCSTProxyParam
 {
-	IN PVOID  StartRoutine;
-	IN PVOID  StartContext;
-	IN PVOID  SystemRoutine;
-}
-PCSTProxyParam;
+	IN xbox::PVOID m_StartRoutine;
+	IN xbox::PVOID m_StartContext;
+	IN xbox::PVOID m_SystemRoutine;
+	IN std::condition_variable *m_Cv;
+	IN std::mutex *m_Mtx;
+	OUT bool *m_Ready;
+	OUT xbox::PKTHREAD *m_Kthread;
+	PCSTProxyParam(xbox::PVOID StartRoutine, xbox::PVOID StartContext, xbox::PVOID SystemRoutine, std::condition_variable *Cv, std::mutex *Mtx,
+		bool *Ready, xbox::PKTHREAD *Kthread) : m_StartRoutine(StartRoutine), m_StartContext(StartContext), m_SystemRoutine(SystemRoutine), m_Mtx(Mtx),
+		m_Cv(Cv), m_Ready(Ready), m_Kthread(Kthread) {};
+};
 
 // Global Variable(s)
 extern PVOID g_pfnThreadNotification[PSP_MAX_CREATE_THREAD_NOTIFY] = { NULL };
@@ -86,6 +95,13 @@ void InitXboxThread()
 	_controlfp(_RC_NEAR, _MCW_RC); // Set Rounding control to near (unsure about this)
 }
 
+void InitAndRegisterXboxThread()
+{
+	InitXboxThread();
+	xbox::PKTHREAD kthread = xbox::KeGetCurrentThread();
+	RegisterThread(reinterpret_cast<xbox::PETHREAD>(kthread)->UniqueThread, kthread);
+}
+
 // PsCreateSystemThread proxy procedure
 // Dxbx Note : The signature of PCSTProxy should conform to System.TThreadFunc !
 static unsigned int WINAPI PCSTProxy
@@ -102,20 +118,31 @@ static unsigned int WINAPI PCSTProxy
 	delete iPCSTProxyParam;
 
 	LOG_PCSTProxy(
-		params.StartRoutine,
-		params.StartContext,
-		params.SystemRoutine);
+		params.m_StartRoutine,
+		params.m_StartContext,
+		params.m_SystemRoutine);
 
+	std::unique_lock<std::mutex> lck(*params.m_Mtx);
 
 	// Do minimal thread initialization
 	InitXboxThread();
 
-	auto routine = (xbox::PKSYSTEM_ROUTINE)params.SystemRoutine;
+	xbox::PKTHREAD kthread = xbox::KeGetCurrentThread();
+	*params.m_Kthread = kthread;
+	*params.m_Ready = true;
+	lck.unlock();
+	params.m_Cv->notify_one();
+
+	// NOTE: we cannot just call KeSuspendThread here, because the win32 SuspendThread returns before the thread is actually suspended.
+	// Thus, we could be so unlucky that the thread that has spawned us calls ResumeThread before we were even suspended.
+	xbox::KeWaitForSingleObject(&kthread->SuspendSemaphore, xbox::Executive, xbox::KernelMode, FALSE, xbox::zeroptr);
+
+	auto routine = (xbox::PKSYSTEM_ROUTINE)params.m_SystemRoutine;
 	// Debugging notice : When the below line shows up with an Exception dialog and a
 	// message like: "Exception thrown at 0x00026190 in cxbx.exe: 0xC0000005: Access
 	// violation reading location 0xFD001804.", then this is AS-DESIGNED behaviour!
 	// (To avoid repetitions, uncheck "Break when this exception type is thrown").
-	routine(xbox::PKSTART_ROUTINE(params.StartRoutine), params.StartContext);
+	routine(xbox::PKSTART_ROUTINE(params.m_StartRoutine), params.m_StartContext);
 
 	// This will also handle thread notification :
 	LOG_TEST_CASE("Thread returned from SystemRoutine");
@@ -222,14 +249,16 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 
     // create thread, using our special proxy technique
     {
+		std::condition_variable cv;
+		std::mutex mtx;
+		std::unique_lock lck(mtx);
+
         DWORD dwThreadId = 0;
+		bool ready = false;
+		xbox::PKTHREAD kthread;
 
         // PCSTProxy is responsible for cleaning up this pointer
-		PCSTProxyParam *iPCSTProxyParam = new PCSTProxyParam;
-
-        iPCSTProxyParam->StartRoutine = (PVOID)StartRoutine;
-        iPCSTProxyParam->StartContext = StartContext;
-        iPCSTProxyParam->SystemRoutine = (PVOID)SystemRoutine; // NULL, XapiThreadStartup or unknown?
+		PCSTProxyParam *iPCSTProxyParam = new PCSTProxyParam((PVOID)StartRoutine, StartContext, (PVOID)SystemRoutine, &cv, &mtx, &ready, &kthread);
 
 		/*
 		// call thread notification routine(s)
@@ -253,21 +282,36 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 			}
 		}*/
 
-        HANDLE handle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, KernelStackSize, PCSTProxy, iPCSTProxyParam, CREATE_SUSPENDED, reinterpret_cast<unsigned int*>(&dwThreadId)));
+        HANDLE handle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, KernelStackSize, PCSTProxy, iPCSTProxyParam, 0, reinterpret_cast<unsigned int*>(&dwThreadId)));
 		if (handle == NULL) {
 			delete iPCSTProxyParam;
 			RETURN(xbox::status_insufficient_resources);
 		}
-		*ThreadHandle = handle;
-        if (ThreadId != NULL)
-            *ThreadId = dwThreadId;
 
+		if (ThreadId != zeroptr) {
+			*ThreadId = dwThreadId;
+		}
+
+		// wait until kthread is created and UniqueThread has been set
+		cv.wait(lck, [&ready]() {
+			return ready;
+			});
+
+		// close the handle returned by _beginthreadex because we use the duplicate created in the new thread
+		CloseHandle(handle);
+
+		handle = reinterpret_cast<xbox::PETHREAD>(kthread)->UniqueThread;
+		*ThreadHandle = handle;
 		g_AffinityPolicy->SetAffinityXbox(handle);
-		CxbxKrnlRegisterThread(handle);
+		RegisterThread(handle, kthread);
+
+		// we need to call KeSuspendThread because KeResumeThread expects the thread to be suspended with SuspendThread and not with KeWaitForSingleObject
+		KeSuspendThread(kthread);
+		KeReleaseSemaphore(&kthread->SuspendSemaphore, 0, 1, FALSE);
 
 		// Now that ThreadId is populated and affinity is changed, resume the thread (unless the guest passed CREATE_SUSPENDED)
 		if (!CreateSuspended) {
-			ResumeThread(handle);
+			KeResumeThread(kthread);
 		}
 
 		// Note : DO NOT use iPCSTProxyParam anymore, since ownership is transferred to the proxy (which frees it too)
@@ -368,7 +412,7 @@ XBSYSAPI EXPORTNUM(258) xbox::void_xt NTAPI xbox::PsTerminateSystemThread
 		}
 	}*/
 
-	EmuKeFreePcr();
+	xbox::KeFreePcr();
 	_endthreadex(ExitStatus);
 	// ExitThread(ExitStatus);
 	// CxbxKrnlTerminateThread();

@@ -84,9 +84,6 @@ DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 std::string CxbxKrnl_DebugFileName = "";
 Xbe::Certificate *g_pCertificate = NULL;
 
-/*! thread handles */
-static std::vector<HANDLE> g_hThreads;
-
 char szFilePath_CxbxReloaded_Exe[MAX_PATH] = { 0 };
 char szFolder_CxbxReloadedData[MAX_PATH] = { 0 };
 char szFilePath_EEPROM_bin[MAX_PATH] = { 0 };
@@ -1528,8 +1525,6 @@ __declspec(noreturn) void CxbxKrnlInit
 		}
 	}
 
-	CxbxKrnlRegisterThread(GetCurrentThread());
-
 	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
 	// this will better aproximate the environment with regard to multi-threading) :
 	EmuLogInit(LOG_LEVEL::DEBUG, "Determining CPU affinity.");
@@ -1615,7 +1610,7 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	EmuInitFS();
 
-	InitXboxThread();
+	InitAndRegisterXboxThread();
 	g_AffinityPolicy->SetAffinityXbox();
 	if (!xbox::ObInitSystem()) {
 		// TODO: Replace EmuLogEx to CxbxKrnlCleanupEx when ObInitSystem's calls are properly implement.
@@ -1626,9 +1621,9 @@ __declspec(noreturn) void CxbxKrnlInit
 	EmuX86_Init();
 	// Create the interrupt processing thread
 	DWORD dwThreadId;
-	HANDLE hThread = (HANDLE)_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (unsigned int*)&dwThreadId);
+	_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (unsigned int*)&dwThreadId);
 	// Start the kernel clock thread
-	TimerObject* KernelClockThr = Timer_Create(CxbxKrnlClockThread, nullptr, "Kernel clock thread", false);
+	TimerObject* KernelClockThr = Timer_Create(CxbxKrnlClockThread, nullptr, "Kernel clock thread", true);
 	Timer_Start(KernelClockThr, SCALE_MS_IN_NS);
 
 	EmuLogInit(LOG_LEVEL::DEBUG, "Calling XBE entry point...");
@@ -1733,8 +1728,6 @@ __declspec(noreturn) void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const cha
 {
     g_bEmuException = true;
 
-    CxbxKrnlResume();
-
     // print out error message (if exists)
     if(szErrorMessage != NULL)
     {
@@ -1762,67 +1755,6 @@ __declspec(noreturn) void CxbxKrnlCleanupEx(CXBXR_MODULE cxbxr_module, const cha
     }
 
 	CxbxKrnlShutDown();
-}
-
-void CxbxKrnlRegisterThread(HANDLE hThread)
-{
-	// we must duplicate this handle in order to retain Suspend/Resume thread rights from a remote thread
-	{
-		HANDLE hDupHandle = NULL;
-
-		if (DuplicateHandle(g_CurrentProcessHandle, hThread, g_CurrentProcessHandle, &hDupHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-			hThread = hDupHandle; // Thread handle was duplicated, continue registration with the duplicate
-		}
-		else {
-			auto message = CxbxGetLastErrorString("DuplicateHandle");
-			EmuLog(LOG_LEVEL::WARNING, message.c_str());
-		}
-	}
-
-	g_hThreads.push_back(hThread);
-}
-
-void CxbxKrnlSuspend()
-{
-    if(g_bEmuSuspended || g_bEmuException)
-        return;
-
-    for (auto it = g_hThreads.begin(); it != g_hThreads.end(); ++it)
-    {
-        DWORD dwExitCode;
-
-        if(GetExitCodeThread(*it, &dwExitCode) && dwExitCode == STILL_ACTIVE) {
-            // suspend thread if it is active
-            SuspendThread(*it);
-        } else {
-            // remove thread from thread list if it is dead
-			g_hThreads.erase(it);
-        }
-    }
-
-    g_bEmuSuspended = true;
-}
-
-void CxbxKrnlResume()
-{
-    if(!g_bEmuSuspended)
-        return;
-
-	for (auto it = g_hThreads.begin(); it != g_hThreads.end(); ++it)
-	{
-		DWORD dwExitCode;
-
-		if (GetExitCodeThread(*it, &dwExitCode) && dwExitCode == STILL_ACTIVE) {
-			// resume thread if it is active
-			ResumeThread(*it);
-		}
-		else {
-			// remove thread from thread list if it is dead
-			g_hThreads.erase(it);
-		}
-	}
-
-    g_bEmuSuspended = false;
 }
 
 void CxbxKrnlShutDown(bool is_reboot)
