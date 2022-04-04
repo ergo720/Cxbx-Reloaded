@@ -68,7 +68,7 @@ XBSYSAPI EXPORTNUM(164) xbox::PLAUNCH_DATA_PAGE xbox::LaunchDataPage = xbox::zer
 //
 // Differences from NT: HighestAcceptableAddress was deleted, opting instead
 //     to not care about the highest address.
-XBSYSAPI EXPORTNUM(165) xbox::PVOID NTAPI xbox::MmAllocateContiguousMemory
+XBSYSAPI EXPORTNUM(165) xbox::PVOID XBOXAPI xbox::MmAllocateContiguousMemory
 (
 	IN ulong_xt NumberOfBytes
 )
@@ -81,7 +81,7 @@ XBSYSAPI EXPORTNUM(165) xbox::PVOID NTAPI xbox::MmAllocateContiguousMemory
 // ******************************************************************
 // * 0x00A6 - MmAllocateContiguousMemoryEx()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(166) xbox::PVOID NTAPI xbox::MmAllocateContiguousMemoryEx
+XBSYSAPI EXPORTNUM(166) xbox::PVOID XBOXAPI xbox::MmAllocateContiguousMemoryEx
 (
 	IN ulong_xt            NumberOfBytes,
 	IN physical_address_xt LowestAcceptableAddress,
@@ -106,7 +106,7 @@ XBSYSAPI EXPORTNUM(166) xbox::PVOID NTAPI xbox::MmAllocateContiguousMemoryEx
 // ******************************************************************
 // * 0x00A7 - MmAllocateSystemMemory()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(167) xbox::PVOID NTAPI xbox::MmAllocateSystemMemory
+XBSYSAPI EXPORTNUM(167) xbox::PVOID XBOXAPI xbox::MmAllocateSystemMemory
 (
 	ulong_xt NumberOfBytes,
 	ulong_xt Protect
@@ -125,7 +125,7 @@ XBSYSAPI EXPORTNUM(167) xbox::PVOID NTAPI xbox::MmAllocateSystemMemory
 // ******************************************************************
 // * 0x00A8 - MmClaimGpuInstanceMemory()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(168) xbox::PVOID NTAPI xbox::MmClaimGpuInstanceMemory
+XBSYSAPI EXPORTNUM(168) xbox::PVOID XBOXAPI xbox::MmClaimGpuInstanceMemory
 (
 	IN size_xt NumberOfBytes,
 	OUT size_xt *NumberOfPaddingBytes
@@ -146,7 +146,7 @@ XBSYSAPI EXPORTNUM(168) xbox::PVOID NTAPI xbox::MmClaimGpuInstanceMemory
 // ******************************************************************
 // * Differences from NT: Custom stack size.
 // ******************************************************************
-XBSYSAPI EXPORTNUM(169) xbox::PVOID NTAPI xbox::MmCreateKernelStack
+XBSYSAPI EXPORTNUM(169) xbox::PVOID XBOXAPI xbox::MmCreateKernelStack
 (
 	IN ulong_xt	NumberOfBytes,
 	IN boolean_xt  DebuggerThread
@@ -170,7 +170,7 @@ XBSYSAPI EXPORTNUM(169) xbox::PVOID NTAPI xbox::MmCreateKernelStack
 // ******************************************************************
 // * 0x00AA - MmDeleteKernelStack()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(170) xbox::void_xt NTAPI xbox::MmDeleteKernelStack
+XBSYSAPI EXPORTNUM(170) xbox::void_xt XBOXAPI xbox::MmDeleteKernelStack
 (
 	PVOID StackBase,
 	PVOID StackLimit
@@ -193,7 +193,7 @@ XBSYSAPI EXPORTNUM(170) xbox::void_xt NTAPI xbox::MmDeleteKernelStack
 // Frees memory allocated with MmAllocateContiguousMemory.
 //
 // Differences from NT: None.
-XBSYSAPI EXPORTNUM(171) xbox::void_xt NTAPI xbox::MmFreeContiguousMemory
+XBSYSAPI EXPORTNUM(171) xbox::void_xt XBOXAPI xbox::MmFreeContiguousMemory
 (
 	IN PVOID BaseAddress
 )
@@ -211,7 +211,7 @@ XBSYSAPI EXPORTNUM(171) xbox::void_xt NTAPI xbox::MmFreeContiguousMemory
 // ******************************************************************
 // * 0x00AC - MmFreeSystemMemory()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(172) xbox::ulong_xt NTAPI xbox::MmFreeSystemMemory
+XBSYSAPI EXPORTNUM(172) xbox::ulong_xt XBOXAPI xbox::MmFreeSystemMemory
 (
 	PVOID BaseAddress,
 	ulong_xt NumberOfBytes
@@ -233,7 +233,7 @@ XBSYSAPI EXPORTNUM(172) xbox::ulong_xt NTAPI xbox::MmFreeSystemMemory
 // Translates a virtual address into a physical address.
 //
 // Differences from NT: PhysicalAddress is 32 bit, not 64.
-XBSYSAPI EXPORTNUM(173) xbox::physical_address_xt NTAPI xbox::MmGetPhysicalAddress
+XBSYSAPI EXPORTNUM(173) xbox::physical_address_xt XBOXAPI xbox::MmGetPhysicalAddress
 (
 	IN PVOID   BaseAddress
 )
@@ -251,7 +251,7 @@ XBSYSAPI EXPORTNUM(173) xbox::physical_address_xt NTAPI xbox::MmGetPhysicalAddre
 // ******************************************************************
 // * 0x00AE - MmIsAddressValid()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(174) xbox::boolean_xt NTAPI xbox::MmIsAddressValid
+XBSYSAPI EXPORTNUM(174) xbox::boolean_xt XBOXAPI xbox::MmIsAddressValid
 (
 	IN PVOID   VirtualAddress
 )
@@ -268,7 +268,7 @@ XBSYSAPI EXPORTNUM(174) xbox::boolean_xt NTAPI xbox::MmIsAddressValid
 // ******************************************************************
 // * 0x00AF - MmLockUnlockBufferPages()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(175) xbox::void_xt NTAPI xbox::MmLockUnlockBufferPages
+XBSYSAPI EXPORTNUM(175) xbox::void_xt XBOXAPI xbox::MmLockUnlockBufferPages
 (
 	IN PVOID	        BaseAddress,
 	IN size_xt			NumberOfBytes,
@@ -289,7 +289,7 @@ XBSYSAPI EXPORTNUM(175) xbox::void_xt NTAPI xbox::MmLockUnlockBufferPages
 // ******************************************************************
 // * 0x00B0 - MmLockUnlockPhysicalPage()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(176) xbox::void_xt NTAPI xbox::MmLockUnlockPhysicalPage
+XBSYSAPI EXPORTNUM(176) xbox::void_xt XBOXAPI xbox::MmLockUnlockPhysicalPage
 (
 	IN ulong_ptr_xt PhysicalAddress,
 	IN boolean_xt UnlockPage
@@ -316,7 +316,7 @@ XBSYSAPI EXPORTNUM(176) xbox::void_xt NTAPI xbox::MmLockUnlockPhysicalPage
 //     specifies the page protections, but it's a Win32 PAGE_ macro instead
 //     of the normal NT enumeration.  PAGE_READWRITE is probably what you
 //     want...
-XBSYSAPI EXPORTNUM(177) xbox::PVOID NTAPI xbox::MmMapIoSpace
+XBSYSAPI EXPORTNUM(177) xbox::PVOID XBOXAPI xbox::MmMapIoSpace
 (
 	IN physical_address_xt PhysicalAddress,
 	IN ulong_xt            NumberOfBytes,
@@ -337,7 +337,7 @@ XBSYSAPI EXPORTNUM(177) xbox::PVOID NTAPI xbox::MmMapIoSpace
 // ******************************************************************
 // * 0x00B2 - MmPersistContiguousMemory()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(178) xbox::void_xt NTAPI xbox::MmPersistContiguousMemory
+XBSYSAPI EXPORTNUM(178) xbox::void_xt XBOXAPI xbox::MmPersistContiguousMemory
 (
 	IN PVOID   BaseAddress,
 	IN ulong_xt   NumberOfBytes,
@@ -356,7 +356,7 @@ XBSYSAPI EXPORTNUM(178) xbox::void_xt NTAPI xbox::MmPersistContiguousMemory
 // ******************************************************************
 // * 0x00B3 - MmQueryAddressProtect()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(179) xbox::ulong_xt NTAPI xbox::MmQueryAddressProtect
+XBSYSAPI EXPORTNUM(179) xbox::ulong_xt XBOXAPI xbox::MmQueryAddressProtect
 (
 	IN PVOID VirtualAddress
 )
@@ -371,7 +371,7 @@ XBSYSAPI EXPORTNUM(179) xbox::ulong_xt NTAPI xbox::MmQueryAddressProtect
 // ******************************************************************
 // * 0x00B4 - MmQueryAllocationSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(180) xbox::ulong_xt NTAPI xbox::MmQueryAllocationSize
+XBSYSAPI EXPORTNUM(180) xbox::ulong_xt XBOXAPI xbox::MmQueryAllocationSize
 (
 	IN PVOID   BaseAddress
 )
@@ -386,7 +386,7 @@ XBSYSAPI EXPORTNUM(180) xbox::ulong_xt NTAPI xbox::MmQueryAllocationSize
 // ******************************************************************
 // * 0x00B5 - MmQueryStatistics()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(181) xbox::ntstatus_xt NTAPI xbox::MmQueryStatistics
+XBSYSAPI EXPORTNUM(181) xbox::ntstatus_xt XBOXAPI xbox::MmQueryStatistics
 (
 	OUT PMM_STATISTICS MemoryStatistics
 )
@@ -430,7 +430,7 @@ XBSYSAPI EXPORTNUM(181) xbox::ntstatus_xt NTAPI xbox::MmQueryStatistics
 // ******************************************************************
 // * 0x00B6 - MmSetAddressProtect()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(182) xbox::void_xt NTAPI xbox::MmSetAddressProtect
+XBSYSAPI EXPORTNUM(182) xbox::void_xt XBOXAPI xbox::MmSetAddressProtect
 (
 	IN PVOID BaseAddress,
 	IN ulong_xt NumberOfBytes,
@@ -452,7 +452,7 @@ XBSYSAPI EXPORTNUM(182) xbox::void_xt NTAPI xbox::MmSetAddressProtect
 // Unmaps a virtual address mapping made by MmMapIoSpace.
 //
 // Differences from NT: None.
-XBSYSAPI EXPORTNUM(183) xbox::void_xt NTAPI xbox::MmUnmapIoSpace
+XBSYSAPI EXPORTNUM(183) xbox::void_xt XBOXAPI xbox::MmUnmapIoSpace
 (
 	IN PVOID BaseAddress,
 	IN ulong_xt NumberOfBytes
@@ -469,7 +469,7 @@ XBSYSAPI EXPORTNUM(183) xbox::void_xt NTAPI xbox::MmUnmapIoSpace
 // ******************************************************************
 // * 0x0176 - MmDbgAllocateMemory
 // ******************************************************************
-XBSYSAPI EXPORTNUM(374) xbox::PVOID NTAPI xbox::MmDbgAllocateMemory
+XBSYSAPI EXPORTNUM(374) xbox::PVOID XBOXAPI xbox::MmDbgAllocateMemory
 (
 	IN ulong_xt NumberOfBytes,
 	IN ulong_xt Protect
@@ -489,7 +489,7 @@ XBSYSAPI EXPORTNUM(374) xbox::PVOID NTAPI xbox::MmDbgAllocateMemory
 // ******************************************************************
 // * 0x0177 - MmDbgFreeMemory
 // ******************************************************************
-XBSYSAPI EXPORTNUM(375) xbox::ulong_xt NTAPI xbox::MmDbgFreeMemory
+XBSYSAPI EXPORTNUM(375) xbox::ulong_xt XBOXAPI xbox::MmDbgFreeMemory
 (
 	IN PVOID BaseAddress,
 	IN ulong_xt NumberOfBytes
@@ -508,7 +508,7 @@ XBSYSAPI EXPORTNUM(375) xbox::ulong_xt NTAPI xbox::MmDbgFreeMemory
 // ******************************************************************
 // * 0x0178 - MmDbgQueryAvailablePages
 // ******************************************************************
-XBSYSAPI EXPORTNUM(376) xbox::ulong_xt NTAPI xbox::MmDbgQueryAvailablePages(void)
+XBSYSAPI EXPORTNUM(376) xbox::ulong_xt XBOXAPI xbox::MmDbgQueryAvailablePages(void)
 {
 	LOG_FUNC();
 
@@ -520,7 +520,7 @@ XBSYSAPI EXPORTNUM(376) xbox::ulong_xt NTAPI xbox::MmDbgQueryAvailablePages(void
 // ******************************************************************
 // * 0x0179 - MmDbgReleaseAddress
 // ******************************************************************
-XBSYSAPI EXPORTNUM(377) xbox::void_xt NTAPI xbox::MmDbgReleaseAddress
+XBSYSAPI EXPORTNUM(377) xbox::void_xt XBOXAPI xbox::MmDbgReleaseAddress
 (
 	IN PVOID VirtualAddress,
 	IN PULONG Opaque
@@ -537,7 +537,7 @@ XBSYSAPI EXPORTNUM(377) xbox::void_xt NTAPI xbox::MmDbgReleaseAddress
 // ******************************************************************
 // * 0x017A - MmDbgWriteCheck
 // ******************************************************************
-XBSYSAPI EXPORTNUM(378) xbox::PVOID NTAPI xbox::MmDbgWriteCheck
+XBSYSAPI EXPORTNUM(378) xbox::PVOID XBOXAPI xbox::MmDbgWriteCheck
 (
 	IN PVOID VirtualAddress,
 	IN PULONG Opaque

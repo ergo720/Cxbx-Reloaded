@@ -83,12 +83,12 @@ void_xt InitializeFscCacheEvent();
 // ******************************************************************
 // * 0x0001 - AvGetSavedDataAddress()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(1) PVOID NTAPI AvGetSavedDataAddress(void);
+XBSYSAPI EXPORTNUM(1) PVOID XBOXAPI AvGetSavedDataAddress(void);
 
 // ******************************************************************
 // * 0x0002 - AvSendTVEncoderOption()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(2) void_xt NTAPI AvSendTVEncoderOption
+XBSYSAPI EXPORTNUM(2) void_xt XBOXAPI AvSendTVEncoderOption
 (
     IN  PVOID   RegisterBase,
     IN  ulong_xt   Option,
@@ -99,7 +99,7 @@ XBSYSAPI EXPORTNUM(2) void_xt NTAPI AvSendTVEncoderOption
 // ******************************************************************
 // * 0x0003 - AvSetDisplayMode()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(3) ulong_xt NTAPI AvSetDisplayMode
+XBSYSAPI EXPORTNUM(3) ulong_xt XBOXAPI AvSetDisplayMode
 (
     IN PVOID    RegisterBase,
     IN ulong_xt    Step,
@@ -112,7 +112,7 @@ XBSYSAPI EXPORTNUM(3) ulong_xt NTAPI AvSetDisplayMode
 // ******************************************************************
 // * 0x0004 - AvSetSavedDataAddress()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(4) void_xt NTAPI AvSetSavedDataAddress
+XBSYSAPI EXPORTNUM(4) void_xt XBOXAPI AvSetSavedDataAddress
 (
     IN PVOID    Address
 );
@@ -120,17 +120,17 @@ XBSYSAPI EXPORTNUM(4) void_xt NTAPI AvSetSavedDataAddress
 // ******************************************************************
 // * 0x0023 - FscGetCacheSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(35) ulong_xt NTAPI FscGetCacheSize();
+XBSYSAPI EXPORTNUM(35) ulong_xt XBOXAPI FscGetCacheSize();
 
 // ******************************************************************
 // * 0x0024 - FscInvalidateIdleBlocks()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(36) void_xt NTAPI FscInvalidateIdleBlocks();
+XBSYSAPI EXPORTNUM(36) void_xt XBOXAPI FscInvalidateIdleBlocks();
 
 // ******************************************************************
 // * 0x0025 - FscSetCacheSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(37) ntstatus_xt NTAPI FscSetCacheSize
+XBSYSAPI EXPORTNUM(37) ntstatus_xt XBOXAPI FscSetCacheSize
 (
 		ulong_xt NumberOfCachePages
 );
@@ -148,7 +148,7 @@ XBSYSAPI EXPORTNUM(89) boolean_xt KdDebuggerNotPresent;
 // ******************************************************************
 // * 0x00A0 - KfRaiseIrql()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(160) uchar_xt FASTCALL KfRaiseIrql
+XBSYSAPI EXPORTNUM(160) uchar_xt XFASTCALL KfRaiseIrql
 (
     IN uchar_xt    NewIrql
 );
@@ -156,7 +156,7 @@ XBSYSAPI EXPORTNUM(160) uchar_xt FASTCALL KfRaiseIrql
 // ******************************************************************
 // * 0x00A1 - KfLowerIrql()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(161) void_xt FASTCALL KfLowerIrql
+XBSYSAPI EXPORTNUM(161) void_xt XFASTCALL KfLowerIrql
 (
     IN uchar_xt    NewIrql
 );
@@ -174,7 +174,7 @@ void KiLockDispatcherDatabase
 // ******************************************************************
 // * 0x00A3 - KiUnlockDispatcherDatabase()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(163) void_xt FASTCALL KiUnlockDispatcherDatabase
+XBSYSAPI EXPORTNUM(163) void_xt XFASTCALL KiUnlockDispatcherDatabase
 (
 	IN KIRQL OldIrql
 );
@@ -187,7 +187,7 @@ XBSYSAPI EXPORTNUM(164) PLAUNCH_DATA_PAGE LaunchDataPage;
 // ******************************************************************
 // * 0x00FC - PhyGetLinkState()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(252) dword_xt NTAPI PhyGetLinkState
+XBSYSAPI EXPORTNUM(252) dword_xt XBOXAPI PhyGetLinkState
 (
 	IN ulong_xt	Mode
 );
@@ -195,7 +195,7 @@ XBSYSAPI EXPORTNUM(252) dword_xt NTAPI PhyGetLinkState
 // ******************************************************************
 // * 0x00FD - PhyInitialize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(253) ntstatus_xt NTAPI PhyInitialize
+XBSYSAPI EXPORTNUM(253) ntstatus_xt XBOXAPI PhyInitialize
 (
 	IN ulong_xt	forceReset,
 	IN PVOID	Parameter2
@@ -241,7 +241,7 @@ XBSYSAPI EXPORTNUM(326) OBJECT_STRING XeImageFileName;
 // ******************************************************************
 // * 0x0147 - XeLoadSection()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(327) ntstatus_xt NTAPI XeLoadSection
+XBSYSAPI EXPORTNUM(327) ntstatus_xt XBOXAPI XeLoadSection
 (
 	IN PXBEIMAGE_SECTION Section
 );
@@ -249,7 +249,7 @@ XBSYSAPI EXPORTNUM(327) ntstatus_xt NTAPI XeLoadSection
 // ******************************************************************
 // * 0x0148 - XeUnloadSection()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(328) ntstatus_xt NTAPI XeUnloadSection
+XBSYSAPI EXPORTNUM(328) ntstatus_xt XBOXAPI XeUnloadSection
 (
 	IN PXBEIMAGE_SECTION Section
 );
@@ -257,7 +257,7 @@ XBSYSAPI EXPORTNUM(328) ntstatus_xt NTAPI XeUnloadSection
 // ******************************************************************
 // * 0x014F - XcSHAInit()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(335) void_xt NTAPI XcSHAInit
+XBSYSAPI EXPORTNUM(335) void_xt XBOXAPI XcSHAInit
 (
 	IN PUCHAR pbSHAContext
 );
@@ -265,7 +265,7 @@ XBSYSAPI EXPORTNUM(335) void_xt NTAPI XcSHAInit
 // ******************************************************************
 // * 0x0150 - XcSHAUpdate()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(336) void_xt NTAPI XcSHAUpdate
+XBSYSAPI EXPORTNUM(336) void_xt XBOXAPI XcSHAUpdate
 (
 	IN PUCHAR pbSHAContext,
 	IN PUCHAR pbInput,
@@ -275,7 +275,7 @@ XBSYSAPI EXPORTNUM(336) void_xt NTAPI XcSHAUpdate
 // ******************************************************************
 // * 0x0151 - XcSHAFinal()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(337) void_xt NTAPI XcSHAFinal
+XBSYSAPI EXPORTNUM(337) void_xt XBOXAPI XcSHAFinal
 (
 	IN PUCHAR pbSHAContext,
 	IN PUCHAR pbDigest
@@ -284,7 +284,7 @@ XBSYSAPI EXPORTNUM(337) void_xt NTAPI XcSHAFinal
 // ******************************************************************
 // * 0x0152 - XcRC4Key()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(338) void_xt NTAPI XcRC4Key
+XBSYSAPI EXPORTNUM(338) void_xt XBOXAPI XcRC4Key
 (
 	IN PUCHAR pbKeyStruct,
 	IN ulong_xt dwKeyLength,
@@ -294,7 +294,7 @@ XBSYSAPI EXPORTNUM(338) void_xt NTAPI XcRC4Key
 // ******************************************************************
 // * 0x0153 - XcRC4Crypt()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(339) void_xt NTAPI XcRC4Crypt
+XBSYSAPI EXPORTNUM(339) void_xt XBOXAPI XcRC4Crypt
 (
 	IN PUCHAR pbKeyStruct,
 	IN ulong_xt dwInputLength,
@@ -304,7 +304,7 @@ XBSYSAPI EXPORTNUM(339) void_xt NTAPI XcRC4Crypt
 // ******************************************************************
 // * 0x0154 - XcHMAC()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(340) void_xt NTAPI XcHMAC
+XBSYSAPI EXPORTNUM(340) void_xt XBOXAPI XcHMAC
 (
 	IN PBYTE pbKeyMaterial,
 	IN ulong_xt cbKeyMaterial,
@@ -318,7 +318,7 @@ XBSYSAPI EXPORTNUM(340) void_xt NTAPI XcHMAC
 // ******************************************************************
 // * 0x0155 - XcPKEncPublic()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(341) ulong_xt NTAPI XcPKEncPublic
+XBSYSAPI EXPORTNUM(341) ulong_xt XBOXAPI XcPKEncPublic
 (
 	IN PUCHAR pbPubKey,
 	IN PUCHAR pbInput,
@@ -328,7 +328,7 @@ XBSYSAPI EXPORTNUM(341) ulong_xt NTAPI XcPKEncPublic
 // ******************************************************************
 // * 0x0156 - XcPKDecPrivate()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(342) ulong_xt NTAPI XcPKDecPrivate
+XBSYSAPI EXPORTNUM(342) ulong_xt XBOXAPI XcPKDecPrivate
 (
 	IN PUCHAR pbPrvKey,
 	IN PUCHAR pbInput,
@@ -338,7 +338,7 @@ XBSYSAPI EXPORTNUM(342) ulong_xt NTAPI XcPKDecPrivate
 // ******************************************************************
 // * 0x0157 - XcPKGetKeyLen()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(343) ulong_xt NTAPI XcPKGetKeyLen
+XBSYSAPI EXPORTNUM(343) ulong_xt XBOXAPI XcPKGetKeyLen
 (
 	OUT PUCHAR pbPubKey
 );
@@ -346,7 +346,7 @@ XBSYSAPI EXPORTNUM(343) ulong_xt NTAPI XcPKGetKeyLen
 // ******************************************************************
 // * 0x0158 - XcVerifyPKCS1Signature()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(344) boolean_xt NTAPI XcVerifyPKCS1Signature
+XBSYSAPI EXPORTNUM(344) boolean_xt XBOXAPI XcVerifyPKCS1Signature
 (
 	IN PUCHAR pbSig,
 	IN PUCHAR pbPubKey,
@@ -356,7 +356,7 @@ XBSYSAPI EXPORTNUM(344) boolean_xt NTAPI XcVerifyPKCS1Signature
 // ******************************************************************
 // * 0x0159 - XcModExp()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(345) ulong_xt NTAPI XcModExp
+XBSYSAPI EXPORTNUM(345) ulong_xt XBOXAPI XcModExp
 (
 	IN LPDWORD pA,
 	IN LPDWORD pB,
@@ -368,7 +368,7 @@ XBSYSAPI EXPORTNUM(345) ulong_xt NTAPI XcModExp
 // ******************************************************************
 // * 0x015A - XcDESKeyParity()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(346) void_xt NTAPI XcDESKeyParity
+XBSYSAPI EXPORTNUM(346) void_xt XBOXAPI XcDESKeyParity
 (
 	IN PUCHAR pbKey,
 	IN ulong_xt dwKeyLength
@@ -377,7 +377,7 @@ XBSYSAPI EXPORTNUM(346) void_xt NTAPI XcDESKeyParity
 // ******************************************************************
 // * 0x015B - XcKeyTable()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(347) void_xt NTAPI XcKeyTable
+XBSYSAPI EXPORTNUM(347) void_xt XBOXAPI XcKeyTable
 (
 	IN ulong_xt dwCipher,
 	OUT PUCHAR pbKeyTable,
@@ -387,7 +387,7 @@ XBSYSAPI EXPORTNUM(347) void_xt NTAPI XcKeyTable
 // ******************************************************************
 // * 0x015C - XcBlockCrypt()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(348) void_xt NTAPI XcBlockCrypt
+XBSYSAPI EXPORTNUM(348) void_xt XBOXAPI XcBlockCrypt
 (
 	IN ulong_xt dwCipher,
 	OUT PUCHAR pbOutput,
@@ -399,7 +399,7 @@ XBSYSAPI EXPORTNUM(348) void_xt NTAPI XcBlockCrypt
 // ******************************************************************
 // * 0x015D - XcBlockCryptCBC()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(349) void_xt NTAPI XcBlockCryptCBC
+XBSYSAPI EXPORTNUM(349) void_xt XBOXAPI XcBlockCryptCBC
 (
 	IN ulong_xt dwCipher,
 	IN ulong_xt dwInputLength,
@@ -413,29 +413,29 @@ XBSYSAPI EXPORTNUM(349) void_xt NTAPI XcBlockCryptCBC
 // ******************************************************************
 // * 0x015E - XcCryptService()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(350) ulong_xt NTAPI XcCryptService
+XBSYSAPI EXPORTNUM(350) ulong_xt XBOXAPI XcCryptService
 (
 	IN ulong_xt dwOp,
 	IN PVOID pArgs
 );
 
 /* Function pointers which point to all the kernel crypto functions. Used by PCRYPTO_VECTOR. */
-typedef void_xt(NTAPI *pfXcSHAInit)(PUCHAR pbSHAContext);
-typedef void_xt(NTAPI *pfXcSHAUpdate)(PUCHAR pbSHAContext, PUCHAR pbInput, ulong_xt dwInputLength);
-typedef void_xt(NTAPI *pfXcSHAFinal)(PUCHAR pbSHAContext, PUCHAR pbDigest);
-typedef void_xt(NTAPI *pfXcRC4Key)(PUCHAR pbKeyStruct, ulong_xt dwKeyLength, PUCHAR pbKey);
-typedef void_xt(NTAPI *pfXcRC4Crypt)(PUCHAR pbKeyStruct, ulong_xt dwInputLength, PUCHAR pbInput);
-typedef void_xt(NTAPI *pfXcHMAC)(PBYTE pbKeyMaterial, ulong_xt cbKeyMaterial, PBYTE pbData, ulong_xt cbData, PBYTE pbData2, ulong_xt cbData2, PBYTE HmacData);
-typedef ulong_xt(NTAPI *pfXcPKEncPublic)(PUCHAR pbPubKey, PUCHAR pbInput, PUCHAR pbOutput);
-typedef ulong_xt(NTAPI *pfXcPKDecPrivate)(PUCHAR pbPrvKey, PUCHAR pbInput, PUCHAR pbOutput);
-typedef ulong_xt(NTAPI *pfXcPKGetKeyLen)(PUCHAR pbPubKey);
-typedef boolean_xt(NTAPI *pfXcVerifyPKCS1Signature)(PUCHAR pbSig, PUCHAR pbPubKey, PUCHAR pbDigest);
-typedef ulong_xt(NTAPI *pfXcModExp)(LPDWORD pA, LPDWORD pB, LPDWORD pC, LPDWORD pD, ulong_xt dwN);
-typedef void_xt(NTAPI *pfXcDESKeyParity)(PUCHAR pbKey, ulong_xt dwKeyLength);
-typedef void_xt(NTAPI *pfXcKeyTable)(ulong_xt dwCipher, PUCHAR pbKeyTable, PUCHAR pbKey);
-typedef void_xt(NTAPI *pfXcBlockCrypt)(ulong_xt dwCipher, PUCHAR pbOutput, PUCHAR pbInput, PUCHAR pbKeyTable, ulong_xt dwOp);
-typedef void_xt(NTAPI *pfXcBlockCryptCBC)(ulong_xt dwCipher, ulong_xt dwInputLength, PUCHAR pbOutput, PUCHAR pbInput, PUCHAR pbKeyTable, ulong_xt dwOp, PUCHAR pbFeedback);
-typedef ulong_xt(NTAPI *pfXcCryptService)(ulong_xt dwOp, PVOID pArgs);
+typedef void_xt(XBOXAPI *pfXcSHAInit)(PUCHAR pbSHAContext);
+typedef void_xt(XBOXAPI *pfXcSHAUpdate)(PUCHAR pbSHAContext, PUCHAR pbInput, ulong_xt dwInputLength);
+typedef void_xt(XBOXAPI *pfXcSHAFinal)(PUCHAR pbSHAContext, PUCHAR pbDigest);
+typedef void_xt(XBOXAPI *pfXcRC4Key)(PUCHAR pbKeyStruct, ulong_xt dwKeyLength, PUCHAR pbKey);
+typedef void_xt(XBOXAPI *pfXcRC4Crypt)(PUCHAR pbKeyStruct, ulong_xt dwInputLength, PUCHAR pbInput);
+typedef void_xt(XBOXAPI *pfXcHMAC)(PBYTE pbKeyMaterial, ulong_xt cbKeyMaterial, PBYTE pbData, ulong_xt cbData, PBYTE pbData2, ulong_xt cbData2, PBYTE HmacData);
+typedef ulong_xt(XBOXAPI *pfXcPKEncPublic)(PUCHAR pbPubKey, PUCHAR pbInput, PUCHAR pbOutput);
+typedef ulong_xt(XBOXAPI *pfXcPKDecPrivate)(PUCHAR pbPrvKey, PUCHAR pbInput, PUCHAR pbOutput);
+typedef ulong_xt(XBOXAPI *pfXcPKGetKeyLen)(PUCHAR pbPubKey);
+typedef boolean_xt(XBOXAPI *pfXcVerifyPKCS1Signature)(PUCHAR pbSig, PUCHAR pbPubKey, PUCHAR pbDigest);
+typedef ulong_xt(XBOXAPI *pfXcModExp)(LPDWORD pA, LPDWORD pB, LPDWORD pC, LPDWORD pD, ulong_xt dwN);
+typedef void_xt(XBOXAPI *pfXcDESKeyParity)(PUCHAR pbKey, ulong_xt dwKeyLength);
+typedef void_xt(XBOXAPI *pfXcKeyTable)(ulong_xt dwCipher, PUCHAR pbKeyTable, PUCHAR pbKey);
+typedef void_xt(XBOXAPI *pfXcBlockCrypt)(ulong_xt dwCipher, PUCHAR pbOutput, PUCHAR pbInput, PUCHAR pbKeyTable, ulong_xt dwOp);
+typedef void_xt(XBOXAPI *pfXcBlockCryptCBC)(ulong_xt dwCipher, ulong_xt dwInputLength, PUCHAR pbOutput, PUCHAR pbInput, PUCHAR pbKeyTable, ulong_xt dwOp, PUCHAR pbFeedback);
+typedef ulong_xt(XBOXAPI *pfXcCryptService)(ulong_xt dwOp, PVOID pArgs);
 
 /* Struct which contains all the pointers to the crypto functions */
 typedef struct {
@@ -460,7 +460,7 @@ typedef struct {
 // ******************************************************************
 // * 0x015F - XcUpdateCrypto()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(351) void_xt NTAPI XcUpdateCrypto
+XBSYSAPI EXPORTNUM(351) void_xt XBOXAPI XcUpdateCrypto
 (
 	IN PCRYPTO_VECTOR pNewVector,
 	OUT PCRYPTO_VECTOR pROMVector OPTIONAL
@@ -495,7 +495,7 @@ XBSYSAPI EXPORTNUM(357) IDE_CHANNEL_OBJECT IdexChannelObject;
 // ******************************************************************
 // * 0x0169 - RtlSnprintf()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(361) int_xt CDECL RtlSnprintf
+XBSYSAPI EXPORTNUM(361) int_xt XCDECL RtlSnprintf
 (
 	IN PCHAR string,
 	IN size_xt count,
@@ -506,7 +506,7 @@ XBSYSAPI EXPORTNUM(361) int_xt CDECL RtlSnprintf
 // ******************************************************************
 // * 0x016A - RtlSprintf()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(362) int_xt CDECL RtlSprintf
+XBSYSAPI EXPORTNUM(362) int_xt XCDECL RtlSprintf
 (
 	IN PCHAR string,
 	IN LPCCH format,
@@ -516,7 +516,7 @@ XBSYSAPI EXPORTNUM(362) int_xt CDECL RtlSprintf
 // ******************************************************************
 // * 0x016B - RtlVsnprintf()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(363) int_xt CDECL RtlVsnprintf
+XBSYSAPI EXPORTNUM(363) int_xt XCDECL RtlVsnprintf
 (
 	IN PCHAR string,
 	IN size_xt count,
@@ -527,45 +527,45 @@ XBSYSAPI EXPORTNUM(363) int_xt CDECL RtlVsnprintf
 // ******************************************************************
 // * 0x016C - RtlVsprintf()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(364) int_xt CDECL RtlVsprintf
+XBSYSAPI EXPORTNUM(364) int_xt XCDECL RtlVsprintf
 (
 	IN PCHAR string,
 	IN LPCCH format,
 	...
 );
 
-XBSYSAPI EXPORTNUM(367) ntstatus_xt NTAPI UnknownAPI367
+XBSYSAPI EXPORTNUM(367) ntstatus_xt XBOXAPI UnknownAPI367
 (
 	// UNKNOWN ARGUMENTS
 );
 
-XBSYSAPI EXPORTNUM(368) ntstatus_xt NTAPI UnknownAPI368
+XBSYSAPI EXPORTNUM(368) ntstatus_xt XBOXAPI UnknownAPI368
 (
 	// UNKNOWN ARGUMENTS
 );
 
-XBSYSAPI EXPORTNUM(369) ntstatus_xt NTAPI UnknownAPI369
+XBSYSAPI EXPORTNUM(369) ntstatus_xt XBOXAPI UnknownAPI369
 (
 	// UNKNOWN ARGUMENTS
 );
 
-XBSYSAPI EXPORTNUM(370) ntstatus_xt NTAPI XProfpControl // PROFILING
+XBSYSAPI EXPORTNUM(370) ntstatus_xt XBOXAPI XProfpControl // PROFILING
 (
 	ulong_xt Action,
 	ulong_xt Param
 );
 
-XBSYSAPI EXPORTNUM(371) ntstatus_xt NTAPI XProfpGetData // PROFILING 
+XBSYSAPI EXPORTNUM(371) ntstatus_xt XBOXAPI XProfpGetData // PROFILING 
 (
 	// NO ARGUMENTS
 );
 
-XBSYSAPI EXPORTNUM(372) ntstatus_xt NTAPI IrtClientInitFast // PROFILING
+XBSYSAPI EXPORTNUM(372) ntstatus_xt XBOXAPI IrtClientInitFast // PROFILING
 (
 	// UNKNOWN ARGUMENTS
 );
 
-XBSYSAPI EXPORTNUM(373) ntstatus_xt NTAPI IrtSweep // PROFILING
+XBSYSAPI EXPORTNUM(373) ntstatus_xt XBOXAPI IrtSweep // PROFILING
 (
 	// UNKNOWN ARGUMENTS
 );

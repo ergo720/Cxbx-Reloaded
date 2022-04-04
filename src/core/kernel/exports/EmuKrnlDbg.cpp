@@ -45,7 +45,7 @@ namespace NtDll
 // ******************************************************************
 // * 0x0005 - DbgBreakPoint()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(5) xbox::void_xt NTAPI xbox::DbgBreakPoint()
+XBSYSAPI EXPORTNUM(5) xbox::void_xt XBOXAPI xbox::DbgBreakPoint()
 {
 	LOG_FUNC();
 
@@ -55,7 +55,7 @@ XBSYSAPI EXPORTNUM(5) xbox::void_xt NTAPI xbox::DbgBreakPoint()
 // ******************************************************************
 // * 0x0006 - DbgBreakPointWithStatus()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(6) xbox::void_xt NTAPI xbox::DbgBreakPointWithStatus
+XBSYSAPI EXPORTNUM(6) xbox::void_xt XBOXAPI xbox::DbgBreakPointWithStatus
 (
 	IN ulong_xt Status 
 )
@@ -68,7 +68,7 @@ XBSYSAPI EXPORTNUM(6) xbox::void_xt NTAPI xbox::DbgBreakPointWithStatus
 // ******************************************************************
 // * 0x0007 - DbgLoadImageSymbols()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(7) xbox::ntstatus_xt NTAPI xbox::DbgLoadImageSymbols
+XBSYSAPI EXPORTNUM(7) xbox::ntstatus_xt XBOXAPI xbox::DbgLoadImageSymbols
 (
 	IN PANSI_STRING Name,
 	IN PVOID Base,
@@ -137,7 +137,7 @@ XBSYSAPI EXPORTNUM(8) xbox::ulong_xt _cdecl xbox::DbgPrint
 // * 0x000A - DbgPrompt()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(10) xbox::ulong_xt NTAPI xbox::DbgPrompt
+XBSYSAPI EXPORTNUM(10) xbox::ulong_xt XBOXAPI xbox::DbgPrompt
 (
 	IN PCCH Prompt,
 	OUT PCH Response,
@@ -161,7 +161,7 @@ XBSYSAPI EXPORTNUM(10) xbox::ulong_xt NTAPI xbox::DbgPrompt
 // * 0x000B - DbgUnLoadImageSymbols()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(11) xbox::void_xt NTAPI xbox::DbgUnLoadImageSymbols
+XBSYSAPI EXPORTNUM(11) xbox::void_xt XBOXAPI xbox::DbgUnLoadImageSymbols
 (
 	IN PANSI_STRING Name,
 	IN PVOID Base,

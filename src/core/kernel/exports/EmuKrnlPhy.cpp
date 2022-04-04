@@ -209,7 +209,7 @@ BOOL PhyUpdateLinkState()
 // ******************************************************************
 // * 0x00FC - PhyGetLinkState()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(252) xbox::dword_xt NTAPI xbox::PhyGetLinkState
+XBSYSAPI EXPORTNUM(252) xbox::dword_xt XBOXAPI xbox::PhyGetLinkState
 (
 	IN ulong_xt	Mode
 )
@@ -227,7 +227,7 @@ XBSYSAPI EXPORTNUM(252) xbox::dword_xt NTAPI xbox::PhyGetLinkState
 // ******************************************************************
 // * 0x00FD - PhyInitialize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(253) xbox::ntstatus_xt NTAPI xbox::PhyInitialize
+XBSYSAPI EXPORTNUM(253) xbox::ntstatus_xt XBOXAPI xbox::PhyInitialize
 (
 	IN ulong_xt	forceReset,
 	IN PVOID	Parameter2

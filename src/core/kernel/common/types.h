@@ -125,17 +125,6 @@ inline constexpr int_xt reg_full_resource_descriptor   = 9;   // Resource list i
 inline constexpr int_xt reg_resource_requirements_list = 10;
 
 // ******************************************************************
-// * calling conventions
-// ******************************************************************
-#define NTAPI               __stdcall
-#ifndef CDECL
-#define CDECL               __cdecl
-#endif
-#define FASTCALL            __fastcall
-#define INLINE              __inline
-#define DECLSPEC_NORETURN   __declspec(noreturn)
-
-// ******************************************************************
 // * documentation purposes only
 // ******************************************************************
 #define EXPORTNUM(ordinal)
@@ -497,25 +486,25 @@ OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 // ******************************************************************
 // * OBJECT_TYPE
 // ******************************************************************
-typedef PVOID(NTAPI *OB_ALLOCATE_METHOD)(
+typedef PVOID(XBOXAPI *OB_ALLOCATE_METHOD)(
 	IN size_xt NumberOfBytes,
 	IN ulong_xt Tag
 	);
 
-typedef void_xt(NTAPI *OB_FREE_METHOD)(
+typedef void_xt(XBOXAPI *OB_FREE_METHOD)(
 	IN PVOID Pointer
 	);
 
-typedef void_xt(NTAPI *OB_CLOSE_METHOD)(
+typedef void_xt(XBOXAPI *OB_CLOSE_METHOD)(
 	IN PVOID Object,
 	IN ulong_xt SystemHandleCount
 	);
 
-typedef void_xt(NTAPI *OB_DELETE_METHOD)(
+typedef void_xt(XBOXAPI *OB_DELETE_METHOD)(
 	IN PVOID Object
 	);
 
-typedef ntstatus_xt(NTAPI *OB_PARSE_METHOD)(
+typedef ntstatus_xt(XBOXAPI *OB_PARSE_METHOD)(
 	IN PVOID ParseObject,
 	IN struct _OBJECT_TYPE *ObjectType,
 	IN ulong_xt Attributes,
@@ -940,7 +929,7 @@ IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 // ******************************************************************
 // * PIO_APC_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PIO_APC_ROUTINE)
+typedef void_xt (XBOXAPI *PIO_APC_ROUTINE)
 (
     IN PVOID            ApcContext,
     IN PIO_STATUS_BLOCK IoStatusBlock,
@@ -950,7 +939,7 @@ typedef void_xt (NTAPI *PIO_APC_ROUTINE)
 // ******************************************************************
 // * PTIMER_APC_ROUTINE *Same as Win2k/XP*
 // ******************************************************************
-typedef void_xt(NTAPI *PTIMER_APC_ROUTINE)
+typedef void_xt(XBOXAPI *PTIMER_APC_ROUTINE)
 (
 	IN PVOID	TimerContext,
 	IN ulong_xt	TimerLowValue,
@@ -1408,7 +1397,7 @@ KTIMER, *PKTIMER;
 // ******************************************************************
 // * PKSTART_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PKSTART_ROUTINE)
+typedef void_xt (XBOXAPI *PKSTART_ROUTINE)
 (
     IN PVOID StartContext
 );
@@ -1424,7 +1413,7 @@ typedef void_xt (NTAPI *PKSTART_ROUTINE)
 // *       opposed to 1.
 // *
 // ******************************************************************
-typedef void_xt (NTAPI *PKSYSTEM_ROUTINE)
+typedef void_xt (XBOXAPI *PKSYSTEM_ROUTINE)
 (
 	IN PKSTART_ROUTINE StartRoutine OPTIONAL,
 	IN PVOID StartContext OPTIONAL
@@ -1435,7 +1424,7 @@ struct _KDPC;
 // ******************************************************************
 // * PKDEFERRED_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PKDEFERRED_ROUTINE)
+typedef void_xt (XBOXAPI *PKDEFERRED_ROUTINE)
 (
     IN struct _KDPC *Dpc,
     IN PVOID         DeferredContext,
@@ -1542,7 +1531,7 @@ KOBJECTS, *PKOBJECTS;
 // ******************************************************************
 // * PKNORMAL_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PKNORMAL_ROUTINE)
+typedef void_xt (XBOXAPI *PKNORMAL_ROUTINE)
 (
 	IN PVOID NormalContext,
 	IN PVOID SystemArgument1,
@@ -1552,7 +1541,7 @@ typedef void_xt (NTAPI *PKNORMAL_ROUTINE)
 // ******************************************************************
 // * PKKERNEL_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PKKERNEL_ROUTINE)
+typedef void_xt (XBOXAPI *PKKERNEL_ROUTINE)
 (
 	IN struct _KAPC *Apc,
 	IN OUT PKNORMAL_ROUTINE *NormalRoutine,
@@ -1564,7 +1553,7 @@ typedef void_xt (NTAPI *PKKERNEL_ROUTINE)
 // ******************************************************************
 // * PKRUNDOWN_ROUTINE
 // ******************************************************************
-typedef void_xt (NTAPI *PKRUNDOWN_ROUTINE)
+typedef void_xt (XBOXAPI *PKRUNDOWN_ROUTINE)
 (
 	IN struct _KAPC *Apc
 );
@@ -1572,7 +1561,7 @@ typedef void_xt (NTAPI *PKRUNDOWN_ROUTINE)
 // ******************************************************************
 // * PKSYNCHRONIZE_ROUTINE
 // ******************************************************************
-typedef boolean_xt (NTAPI *PKSYNCHRONIZE_ROUTINE)
+typedef boolean_xt (XBOXAPI *PKSYNCHRONIZE_ROUTINE)
 (
 	IN PVOID SynchronizeContext
 );
@@ -1580,7 +1569,7 @@ typedef boolean_xt (NTAPI *PKSYNCHRONIZE_ROUTINE)
 // ******************************************************************
 // * PKSERVICE_ROUTINE
 // ******************************************************************
-typedef boolean_xt (NTAPI *PKSERVICE_ROUTINE)
+typedef boolean_xt (XBOXAPI *PKSERVICE_ROUTINE)
 (
 	IN struct _KINTERRUPT *Interrupt,
 	IN PVOID ServiceContext
@@ -2375,7 +2364,7 @@ OBJECT_TYPE, *POBJECT_TYPE;
 // * Use this to access I/O mapped memory. Just a good standard.
 // *
 // ******************************************************************
-INLINE static uchar_xt READ_REGISTER_UCHAR(PUCHAR Address)
+inline static uchar_xt READ_REGISTER_UCHAR(PUCHAR Address)
 {
     return *(volatile uchar_xt *)Address;
 }
@@ -2387,7 +2376,7 @@ INLINE static uchar_xt READ_REGISTER_UCHAR(PUCHAR Address)
 // * Use this to access I/O mapped memory. Just a good standard.
 // *
 // ******************************************************************
-INLINE static ushort_xt READ_REGISTER_USHORT(PUSHORT Address)
+inline static ushort_xt READ_REGISTER_USHORT(PUSHORT Address)
 {
     return *(volatile ushort_xt *)Address;
 }
@@ -2399,7 +2388,7 @@ INLINE static ushort_xt READ_REGISTER_USHORT(PUSHORT Address)
 // * Use this to access I/O mapped memory. Just a good standard.
 // *
 // ******************************************************************
-INLINE static ulong_xt READ_REGISTER_ULONG(PULONG Address)
+inline static ulong_xt READ_REGISTER_ULONG(PULONG Address)
 {
     return *(volatile ulong_xt *)Address;
 }

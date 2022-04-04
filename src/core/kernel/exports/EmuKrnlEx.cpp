@@ -140,7 +140,7 @@ static bool eeprom_data_is_valid(xbox::XC_VALUE_INDEX index)
 // * 0x000C - ExAcquireReadWriteLockExclusive()
 // ******************************************************************
 // Source:APILogger - Uncertain
-XBSYSAPI EXPORTNUM(12) xbox::void_xt NTAPI xbox::ExAcquireReadWriteLockExclusive
+XBSYSAPI EXPORTNUM(12) xbox::void_xt XBOXAPI xbox::ExAcquireReadWriteLockExclusive
 (
 	IN PERWLOCK ReadWriteLock
 )
@@ -168,7 +168,7 @@ XBSYSAPI EXPORTNUM(12) xbox::void_xt NTAPI xbox::ExAcquireReadWriteLockExclusive
 // * 0x000D - ExAcquireReadWriteLockShared()
 // ******************************************************************
 // Source:APILogger - Uncertain
-XBSYSAPI EXPORTNUM(13) xbox::void_xt NTAPI xbox::ExAcquireReadWriteLockShared
+XBSYSAPI EXPORTNUM(13) xbox::void_xt XBOXAPI xbox::ExAcquireReadWriteLockShared
 (
 	IN PERWLOCK ReadWriteLock
 )
@@ -201,7 +201,7 @@ XBSYSAPI EXPORTNUM(13) xbox::void_xt NTAPI xbox::ExAcquireReadWriteLockShared
 // ******************************************************************
 // * 0x000E - ExAllocatePool()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(14) xbox::PVOID NTAPI xbox::ExAllocatePool
+XBSYSAPI EXPORTNUM(14) xbox::PVOID XBOXAPI xbox::ExAllocatePool
 (
 	IN size_xt NumberOfBytes
 )
@@ -217,7 +217,7 @@ XBSYSAPI EXPORTNUM(14) xbox::PVOID NTAPI xbox::ExAllocatePool
 // * Differences from NT: There is no PoolType field, as the XBOX
 // * only has 1 pool, the non-paged pool.
 // ******************************************************************
-XBSYSAPI EXPORTNUM(15) xbox::PVOID NTAPI xbox::ExAllocatePoolWithTag
+XBSYSAPI EXPORTNUM(15) xbox::PVOID XBOXAPI xbox::ExAllocatePoolWithTag
 (
 	IN size_xt NumberOfBytes,
 	IN ulong_xt Tag
@@ -250,7 +250,7 @@ XBSYSAPI EXPORTNUM(16) xbox::OBJECT_TYPE xbox::ExEventObjectType =
 // ******************************************************************
 // * 0x0011 - ExFreePool()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(17) xbox::void_xt NTAPI xbox::ExFreePool
+XBSYSAPI EXPORTNUM(17) xbox::void_xt XBOXAPI xbox::ExFreePool
 (
 	IN PVOID	P
 )
@@ -264,7 +264,7 @@ XBSYSAPI EXPORTNUM(17) xbox::void_xt NTAPI xbox::ExFreePool
 // * 0x0012 - ExInitializeReadWriteLock()
 // ******************************************************************
 // Source:APILogger - Uncertain
-XBSYSAPI EXPORTNUM(18) xbox::void_xt NTAPI xbox::ExInitializeReadWriteLock
+XBSYSAPI EXPORTNUM(18) xbox::void_xt XBOXAPI xbox::ExInitializeReadWriteLock
 (
 	IN PERWLOCK ReadWriteLock
 )
@@ -283,7 +283,7 @@ XBSYSAPI EXPORTNUM(18) xbox::void_xt NTAPI xbox::ExInitializeReadWriteLock
 // * 0x0013 - ExInterlockedAddLargeInteger()
 // ******************************************************************
 // Source:ReactOS https://doxygen.reactos.org/d0/d35/ntoskrnl_2ex_2interlocked_8c_source.html#l00062
-XBSYSAPI EXPORTNUM(19) xbox::LARGE_INTEGER NTAPI xbox::ExInterlockedAddLargeInteger
+XBSYSAPI EXPORTNUM(19) xbox::LARGE_INTEGER XBOXAPI xbox::ExInterlockedAddLargeInteger
 (
 	IN OUT PLARGE_INTEGER Addend,
 	IN LARGE_INTEGER Increment,
@@ -319,7 +319,7 @@ XBSYSAPI EXPORTNUM(19) xbox::LARGE_INTEGER NTAPI xbox::ExInterlockedAddLargeInte
 // * 0x0014 - ExInterlockedAddLargeStatistic()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(20) xbox::void_xt FASTCALL xbox::ExInterlockedAddLargeStatistic
+XBSYSAPI EXPORTNUM(20) xbox::void_xt XFASTCALL xbox::ExInterlockedAddLargeStatistic
 (
 	IN PLARGE_INTEGER Addend,
 	IN ulong_xt Increment
@@ -338,7 +338,7 @@ XBSYSAPI EXPORTNUM(20) xbox::void_xt FASTCALL xbox::ExInterlockedAddLargeStatist
 // * 0x0015 - ExInterlockedCompareExchange64()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(21) xbox::longlong_xt FASTCALL xbox::ExInterlockedCompareExchange64
+XBSYSAPI EXPORTNUM(21) xbox::longlong_xt XFASTCALL xbox::ExInterlockedCompareExchange64
 (
 	IN OUT PLONGLONG Destination,
 	IN PLONGLONG Exchange,
@@ -376,7 +376,7 @@ XBSYSAPI EXPORTNUM(22) xbox::OBJECT_TYPE xbox::ExMutantObjectType =
 // ******************************************************************
 // * 0x0017 - ExQueryPoolBlockSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(23) xbox::ulong_xt NTAPI xbox::ExQueryPoolBlockSize
+XBSYSAPI EXPORTNUM(23) xbox::ulong_xt XBOXAPI xbox::ExQueryPoolBlockSize
 (
 	IN PVOID PoolBlock
 )
@@ -391,7 +391,7 @@ XBSYSAPI EXPORTNUM(23) xbox::ulong_xt NTAPI xbox::ExQueryPoolBlockSize
 // ******************************************************************
 // * 0x0018 - ExQueryNonVolatileSetting()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(24) xbox::ntstatus_xt NTAPI xbox::ExQueryNonVolatileSetting
+XBSYSAPI EXPORTNUM(24) xbox::ntstatus_xt XBOXAPI xbox::ExQueryNonVolatileSetting
 (
 	IN  dword_xt   ValueIndex,
 	OUT dword_xt   *Type,
@@ -468,7 +468,7 @@ XBSYSAPI EXPORTNUM(24) xbox::ntstatus_xt NTAPI xbox::ExQueryNonVolatileSetting
 // ******************************************************************
 // * 0x0019 - ExReadWriteRefurbInfo()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(25) xbox::ntstatus_xt NTAPI xbox::ExReadWriteRefurbInfo
+XBSYSAPI EXPORTNUM(25) xbox::ntstatus_xt XBOXAPI xbox::ExReadWriteRefurbInfo
 (
 	IN OUT PXBOX_REFURB_INFO	pRefurbInfo,
 	IN ulong_xt	dwBufferSize,
@@ -548,7 +548,7 @@ XBSYSAPI EXPORTNUM(25) xbox::ntstatus_xt NTAPI xbox::ExReadWriteRefurbInfo
 // * 0x001A - ExRaiseException()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(26) xbox::void_xt NTAPI xbox::ExRaiseException
+XBSYSAPI EXPORTNUM(26) xbox::void_xt XBOXAPI xbox::ExRaiseException
 (
 	IN PEXCEPTION_RECORD ExceptionRecord
 )
@@ -563,7 +563,7 @@ XBSYSAPI EXPORTNUM(26) xbox::void_xt NTAPI xbox::ExRaiseException
 // * 0x001B - ExRaiseStatus()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(27) xbox::void_xt NTAPI xbox::ExRaiseStatus
+XBSYSAPI EXPORTNUM(27) xbox::void_xt XBOXAPI xbox::ExRaiseStatus
 (
 	IN ntstatus_xt Status
 )
@@ -577,7 +577,7 @@ XBSYSAPI EXPORTNUM(27) xbox::void_xt NTAPI xbox::ExRaiseStatus
 // * 0x001C - ExReleaseReadWriteLock()
 // ******************************************************************
 // Source:APILogger - Uncertain
-XBSYSAPI EXPORTNUM(28) xbox::void_xt NTAPI xbox::ExReleaseReadWriteLock
+XBSYSAPI EXPORTNUM(28) xbox::void_xt XBOXAPI xbox::ExReleaseReadWriteLock
 (
 	IN PERWLOCK ReadWriteLock
 )
@@ -617,7 +617,7 @@ XBSYSAPI EXPORTNUM(28) xbox::void_xt NTAPI xbox::ExReleaseReadWriteLock
 // ******************************************************************
 // * 0x001D - ExSaveNonVolatileSetting()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(29) xbox::ntstatus_xt NTAPI xbox::ExSaveNonVolatileSetting
+XBSYSAPI EXPORTNUM(29) xbox::ntstatus_xt XBOXAPI xbox::ExSaveNonVolatileSetting
 (
 	IN  dword_xt			   ValueIndex,
 	IN  dword_xt			   Type,
@@ -718,7 +718,7 @@ XBSYSAPI EXPORTNUM(31) xbox::OBJECT_TYPE xbox::ExTimerObjectType =
 // * 0x0020 - ExfInterlockedInsertHeadList()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(32) xbox::PLIST_ENTRY FASTCALL xbox::ExfInterlockedInsertHeadList
+XBSYSAPI EXPORTNUM(32) xbox::PLIST_ENTRY XFASTCALL xbox::ExfInterlockedInsertHeadList
 (
 	IN PLIST_ENTRY ListHead,
 	IN PLIST_ENTRY ListEntry
@@ -752,7 +752,7 @@ XBSYSAPI EXPORTNUM(32) xbox::PLIST_ENTRY FASTCALL xbox::ExfInterlockedInsertHead
 // * 0x0021 - ExfInterlockedInsertTailList()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(33) xbox::PLIST_ENTRY FASTCALL xbox::ExfInterlockedInsertTailList
+XBSYSAPI EXPORTNUM(33) xbox::PLIST_ENTRY XFASTCALL xbox::ExfInterlockedInsertTailList
 (
 	IN PLIST_ENTRY ListHead,	
 	IN PLIST_ENTRY ListEntry
@@ -787,7 +787,7 @@ XBSYSAPI EXPORTNUM(33) xbox::PLIST_ENTRY FASTCALL xbox::ExfInterlockedInsertTail
 // * 0x0022 - ExfInterlockedRemoveHeadList()
 // ******************************************************************
 // Source:ReactOS
-XBSYSAPI EXPORTNUM(34) xbox::PLIST_ENTRY FASTCALL xbox::ExfInterlockedRemoveHeadList
+XBSYSAPI EXPORTNUM(34) xbox::PLIST_ENTRY XFASTCALL xbox::ExfInterlockedRemoveHeadList
 (
 	IN PLIST_ENTRY ListHead
 )

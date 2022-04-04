@@ -48,7 +48,7 @@ xbox::long_xt g_FscNumberOfCachePages = 16; // 16 = default number of file syste
 // ******************************************************************
 // * 0x0023 - FscGetCacheSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(35) xbox::ulong_xt NTAPI xbox::FscGetCacheSize()
+XBSYSAPI EXPORTNUM(35) xbox::ulong_xt XBOXAPI xbox::FscGetCacheSize()
 {
 	LOG_FUNC();
 
@@ -58,7 +58,7 @@ XBSYSAPI EXPORTNUM(35) xbox::ulong_xt NTAPI xbox::FscGetCacheSize()
 // ******************************************************************
 // * 0x0024 - FscInvalidateIdleBlocks()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(36) xbox::void_xt NTAPI xbox::FscInvalidateIdleBlocks()
+XBSYSAPI EXPORTNUM(36) xbox::void_xt XBOXAPI xbox::FscInvalidateIdleBlocks()
 {
 	LOG_FUNC();
 
@@ -75,7 +75,7 @@ xbox::void_xt xbox::InitializeFscCacheEvent()
 // ******************************************************************
 // * 0x0025 - FscSetCacheSize()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(37) xbox::ntstatus_xt NTAPI xbox::FscSetCacheSize
+XBSYSAPI EXPORTNUM(37) xbox::ntstatus_xt XBOXAPI xbox::FscSetCacheSize
 (
 	ulong_xt NumberOfCachePages
 )

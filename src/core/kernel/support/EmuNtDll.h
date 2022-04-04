@@ -113,14 +113,15 @@ typedef unsigned __int64                ULONGLONG;
 // ******************************************************************
 // * calling conventions
 // ******************************************************************
+#ifndef NTAPI
 #define NTAPI               __stdcall
+#endif
 #ifndef CDECL
 #define CDECL               __cdecl
 #endif
+#ifndef FASTCALL
 #define FASTCALL            __fastcall
-#define INLINE              __inline
-#define DECLSPEC_NORETURN   __declspec(noreturn)
-
+#endif
 #define VOLATILE            volatile
 
 // ******************************************************************

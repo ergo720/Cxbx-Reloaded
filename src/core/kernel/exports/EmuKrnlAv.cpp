@@ -157,7 +157,7 @@ xbox::PVOID xbox::AvSavedDataAddress = xbox::zeroptr;
 // ******************************************************************
 // * 0x0001 - AvGetSavedDataAddress()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(1) xbox::PVOID NTAPI xbox::AvGetSavedDataAddress(void)
+XBSYSAPI EXPORTNUM(1) xbox::PVOID XBOXAPI xbox::AvGetSavedDataAddress(void)
 {
 	LOG_FUNC();
 
@@ -167,7 +167,7 @@ XBSYSAPI EXPORTNUM(1) xbox::PVOID NTAPI xbox::AvGetSavedDataAddress(void)
 // ******************************************************************
 // * 0x0002 - AvSendTVEncoderOption()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(2) xbox::void_xt NTAPI xbox::AvSendTVEncoderOption
+XBSYSAPI EXPORTNUM(2) xbox::void_xt XBOXAPI xbox::AvSendTVEncoderOption
 (
 	IN  PVOID   RegisterBase,
 	IN  ulong_xt   Option,
@@ -246,7 +246,7 @@ XBSYSAPI EXPORTNUM(2) xbox::void_xt NTAPI xbox::AvSendTVEncoderOption
 // ******************************************************************
 // * 0x0003 - AvSetDisplayMode()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(3) xbox::ulong_xt NTAPI xbox::AvSetDisplayMode
+XBSYSAPI EXPORTNUM(3) xbox::ulong_xt XBOXAPI xbox::AvSetDisplayMode
 (
 	IN  PVOID   RegisterBase,
 	IN  ulong_xt   Step,
@@ -395,7 +395,7 @@ XBSYSAPI EXPORTNUM(3) xbox::ulong_xt NTAPI xbox::AvSetDisplayMode
 // ******************************************************************
 // * 0x0004 - AvSetSavedDataAddress()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(4) xbox::void_xt NTAPI xbox::AvSetSavedDataAddress
+XBSYSAPI EXPORTNUM(4) xbox::void_xt XBOXAPI xbox::AvSetSavedDataAddress
 (
 	IN  PVOID   Address
 )

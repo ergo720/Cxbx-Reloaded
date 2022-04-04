@@ -565,7 +565,7 @@ xbox::void_xt WINAPI EMUPATCH(XapiThreadStartup)
 // ******************************************************************
 // * patch: XapiSetupPerTitleDriveLetters
 // ******************************************************************
-NTSTATUS CDECL XapiSetupPerTitleDriveLetters(dword_xt dwTitleId, LPCWSTR wszTitleName);
+NTSTATUS XCDECL XapiSetupPerTitleDriveLetters(dword_xt dwTitleId, LPCWSTR wszTitleName);
 */
 
 // ******************************************************************

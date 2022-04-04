@@ -140,7 +140,7 @@ static unsigned int WINAPI PCSTProxy
 }
 
 // Placeholder system function, instead of XapiThreadStartup
-xbox::void_xt NTAPI PspSystemThreadStartup
+xbox::void_xt XBOXAPI PspSystemThreadStartup
 (
 	IN xbox::PKSTART_ROUTINE StartRoutine,
 	IN PVOID StartContext
@@ -171,7 +171,7 @@ static xbox::void_xt PspCallThreadNotificationRoutines(xbox::PETHREAD eThread, x
 
 // Source: ReactOS
 xbox::LIST_ENTRY PspReaperListHead;
-xbox::void_xt NTAPI PspReaperRoutine(
+xbox::void_xt XBOXAPI PspReaperRoutine(
 	IN xbox::PKDPC Dpc,
 	IN xbox::PVOID DeferredContext,
 	IN xbox::PVOID SystemArgument1,
@@ -230,7 +230,7 @@ xbox::void_xt xbox::PsInitSystem()
 // ******************************************************************
 // * 0x00FE - PsCreateSystemThread()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(254) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThread
+XBSYSAPI EXPORTNUM(254) xbox::ntstatus_xt XBOXAPI xbox::PsCreateSystemThread
 (
 	OUT PHANDLE         ThreadHandle,
 	OUT PHANDLE          ThreadId OPTIONAL,
@@ -271,7 +271,7 @@ XBSYSAPI EXPORTNUM(254) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThread
 // SystemRoutine: System function (normally XapiThreadStartup) called when the thread is created
 //
 // New to the XBOX.
-XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
+XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt XBOXAPI xbox::PsCreateSystemThreadEx
 (
 	OUT PHANDLE         ThreadHandle,
 	IN  ulong_xt           ThreadExtensionSize,
@@ -395,7 +395,7 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 // ******************************************************************
 // * 0x0100 - PsQueryStatistics()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(256) xbox::ntstatus_xt NTAPI xbox::PsQueryStatistics
+XBSYSAPI EXPORTNUM(256) xbox::ntstatus_xt XBOXAPI xbox::PsQueryStatistics
 (
 	IN OUT PPS_STATISTICS ProcessStatistics
 )
@@ -417,7 +417,7 @@ XBSYSAPI EXPORTNUM(256) xbox::ntstatus_xt NTAPI xbox::PsQueryStatistics
 // ******************************************************************
 // * 0x0101 - PsSetCreateThreadNotifyRoutine()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(257) xbox::ntstatus_xt NTAPI xbox::PsSetCreateThreadNotifyRoutine
+XBSYSAPI EXPORTNUM(257) xbox::ntstatus_xt XBOXAPI xbox::PsSetCreateThreadNotifyRoutine
 (
 	IN PCREATE_THREAD_NOTIFY_ROUTINE NotifyRoutine
 )
@@ -442,7 +442,7 @@ XBSYSAPI EXPORTNUM(257) xbox::ntstatus_xt NTAPI xbox::PsSetCreateThreadNotifyRou
 // Exits the current system thread.  Must be called from a system thread.
 //
 // Differences from NT: None.
-XBSYSAPI EXPORTNUM(258) xbox::void_xt NTAPI xbox::PsTerminateSystemThread
+XBSYSAPI EXPORTNUM(258) xbox::void_xt XBOXAPI xbox::PsTerminateSystemThread
 (
 	IN ntstatus_xt ExitStatus
 )

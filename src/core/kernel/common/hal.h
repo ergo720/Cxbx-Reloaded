@@ -20,13 +20,13 @@ namespace xbox
 // ******************************************************************
 // * HalReadSMCTrayState
 // ******************************************************************
-XBSYSAPI EXPORTNUM(9) ntstatus_xt NTAPI HalReadSMCTrayState
+XBSYSAPI EXPORTNUM(9) ntstatus_xt XBOXAPI HalReadSMCTrayState
 (
 	dword_xt*	State,
 	dword_xt*	Count
 );
 
-XBSYSAPI EXPORTNUM(38) void_xt FASTCALL HalClearSoftwareInterrupt
+XBSYSAPI EXPORTNUM(38) void_xt XFASTCALL HalClearSoftwareInterrupt
 (
 	KIRQL Request
 );
@@ -34,7 +34,7 @@ XBSYSAPI EXPORTNUM(38) void_xt FASTCALL HalClearSoftwareInterrupt
 // ******************************************************************
 // * 0x0027 - HalDisableSystemInterrupt()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(39) void_xt NTAPI HalDisableSystemInterrupt
+XBSYSAPI EXPORTNUM(39) void_xt XBOXAPI HalDisableSystemInterrupt
 (
 	IN ulong_xt BusInterruptLevel
 );
@@ -46,7 +46,7 @@ XBSYSAPI EXPORTNUM(42) PANSI_STRING HalDiskSerialNumber;
 // ******************************************************************
 // * 0x002B - HalEnableSystemInterrupt()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(43) void_xt NTAPI HalEnableSystemInterrupt
+XBSYSAPI EXPORTNUM(43) void_xt XBOXAPI HalEnableSystemInterrupt
 (
 	IN ulong_xt BusInterruptLevel,
 	IN KINTERRUPT_MODE InterruptMode
@@ -55,7 +55,7 @@ XBSYSAPI EXPORTNUM(43) void_xt NTAPI HalEnableSystemInterrupt
 // ******************************************************************
 // * HalGetInterruptVector
 // ******************************************************************
-XBSYSAPI EXPORTNUM(44) ulong_xt  NTAPI HalGetInterruptVector
+XBSYSAPI EXPORTNUM(44) ulong_xt  XBOXAPI HalGetInterruptVector
 (
     IN ulong_xt   BusInterruptLevel,
     OUT PKIRQL Irql
@@ -64,7 +64,7 @@ XBSYSAPI EXPORTNUM(44) ulong_xt  NTAPI HalGetInterruptVector
 // ******************************************************************
 // * HalReadSMBusValue
 // ******************************************************************
-XBSYSAPI EXPORTNUM(45) ntstatus_xt NTAPI HalReadSMBusValue
+XBSYSAPI EXPORTNUM(45) ntstatus_xt XBOXAPI HalReadSMBusValue
 (
     IN uchar_xt   Address,
     IN uchar_xt   Command,
@@ -75,7 +75,7 @@ XBSYSAPI EXPORTNUM(45) ntstatus_xt NTAPI HalReadSMBusValue
 // ******************************************************************
 // * HalReadWritePCISpace
 // ******************************************************************
-XBSYSAPI EXPORTNUM(46) void_xt NTAPI HalReadWritePCISpace
+XBSYSAPI EXPORTNUM(46) void_xt XBOXAPI HalReadWritePCISpace
 (
   IN ulong_xt   BusNumber,
   IN ulong_xt   SlotNumber,
@@ -95,12 +95,12 @@ typedef struct _HAL_SHUTDOWN_REGISTRATION {
     LIST_ENTRY ListEntry;
 } HAL_SHUTDOWN_REGISTRATION, *PHAL_SHUTDOWN_REGISTRATION;
 
-XBSYSAPI EXPORTNUM(47) void_xt NTAPI HalRegisterShutdownNotification(
+XBSYSAPI EXPORTNUM(47) void_xt XBOXAPI HalRegisterShutdownNotification(
     IN PHAL_SHUTDOWN_REGISTRATION ShutdownRegistration,
     IN boolean_xt Register
 );
 
-XBSYSAPI EXPORTNUM(46) void_xt FASTCALL HalRequestSoftwareInterrupt
+XBSYSAPI EXPORTNUM(46) void_xt XFASTCALL HalRequestSoftwareInterrupt
 (
 	IN KIRQL Request
 );
@@ -112,7 +112,7 @@ XBSYSAPI EXPORTNUM(46) void_xt FASTCALL HalRequestSoftwareInterrupt
 // * Reboot / Shutdown / Etc
 // *
 // ******************************************************************
-XBSYSAPI EXPORTNUM(49) void_xt DECLSPEC_NORETURN NTAPI HalReturnToFirmware
+[[noreturn]] XBSYSAPI EXPORTNUM(49) void_xt XBOXAPI HalReturnToFirmware
 (
     RETURN_FIRMWARE Routine
 );
@@ -120,7 +120,7 @@ XBSYSAPI EXPORTNUM(49) void_xt DECLSPEC_NORETURN NTAPI HalReturnToFirmware
 // ******************************************************************
 // * HalWriteSMBusValue
 // ******************************************************************
-XBSYSAPI EXPORTNUM(50) ntstatus_xt NTAPI HalWriteSMBusValue
+XBSYSAPI EXPORTNUM(50) ntstatus_xt XBOXAPI HalWriteSMBusValue
 (
     uchar_xt   Address,
     uchar_xt   Command,
@@ -131,7 +131,7 @@ XBSYSAPI EXPORTNUM(50) ntstatus_xt NTAPI HalWriteSMBusValue
 // ******************************************************************
 // * READ_PORT_BUFFER_UCHAR
 // ******************************************************************
-XBSYSAPI EXPORTNUM(329) void_xt NTAPI READ_PORT_BUFFER_UCHAR
+XBSYSAPI EXPORTNUM(329) void_xt XBOXAPI READ_PORT_BUFFER_UCHAR
 (
     IN dword_xt Port,
     IN PUCHAR Buffer,
@@ -141,7 +141,7 @@ XBSYSAPI EXPORTNUM(329) void_xt NTAPI READ_PORT_BUFFER_UCHAR
 // ******************************************************************
 // * READ_PORT_BUFFER_USHORT
 // ******************************************************************
-XBSYSAPI EXPORTNUM(330) void_xt NTAPI READ_PORT_BUFFER_USHORT
+XBSYSAPI EXPORTNUM(330) void_xt XBOXAPI READ_PORT_BUFFER_USHORT
 (
     IN dword_xt Port,
     IN PUSHORT Buffer,
@@ -151,7 +151,7 @@ XBSYSAPI EXPORTNUM(330) void_xt NTAPI READ_PORT_BUFFER_USHORT
 // ******************************************************************
 // * READ_PORT_BUFFER_ULONG
 // ******************************************************************
-XBSYSAPI EXPORTNUM(331) void_xt NTAPI READ_PORT_BUFFER_ULONG
+XBSYSAPI EXPORTNUM(331) void_xt XBOXAPI READ_PORT_BUFFER_ULONG
 (
     IN dword_xt Port,
     IN PULONG Buffer,
@@ -161,7 +161,7 @@ XBSYSAPI EXPORTNUM(331) void_xt NTAPI READ_PORT_BUFFER_ULONG
 // ******************************************************************
 // * WRITE_PORT_BUFFER_UCHAR
 // ******************************************************************
-XBSYSAPI EXPORTNUM(332) void_xt NTAPI WRITE_PORT_BUFFER_UCHAR
+XBSYSAPI EXPORTNUM(332) void_xt XBOXAPI WRITE_PORT_BUFFER_UCHAR
 (
     IN dword_xt Port,
     IN PUCHAR Buffer,
@@ -171,7 +171,7 @@ XBSYSAPI EXPORTNUM(332) void_xt NTAPI WRITE_PORT_BUFFER_UCHAR
 // ******************************************************************
 // * WRITE_PORT_BUFFER_USHORT
 // ******************************************************************
-XBSYSAPI EXPORTNUM(333) void_xt NTAPI WRITE_PORT_BUFFER_USHORT
+XBSYSAPI EXPORTNUM(333) void_xt XBOXAPI WRITE_PORT_BUFFER_USHORT
 (
     IN dword_xt Port,
     IN PUSHORT Buffer,
@@ -181,7 +181,7 @@ XBSYSAPI EXPORTNUM(333) void_xt NTAPI WRITE_PORT_BUFFER_USHORT
 // ******************************************************************
 // * WRITE_PORT_BUFFER_ULONG
 // ******************************************************************
-XBSYSAPI EXPORTNUM(334) void_xt NTAPI WRITE_PORT_BUFFER_ULONG
+XBSYSAPI EXPORTNUM(334) void_xt XBOXAPI WRITE_PORT_BUFFER_ULONG
 (
     IN dword_xt Port,
     IN PULONG Buffer,
@@ -193,19 +193,19 @@ XBSYSAPI EXPORTNUM(334) void_xt NTAPI WRITE_PORT_BUFFER_ULONG
 // ******************************************************************
 XBSYSAPI EXPORTNUM(356) dword_xt HalBootSMCVideoMode;
 
-XBSYSAPI EXPORTNUM(358) boolean_xt NTAPI HalIsResetOrShutdownPending
+XBSYSAPI EXPORTNUM(358) boolean_xt XBOXAPI HalIsResetOrShutdownPending
 (
 );
 
-XBSYSAPI EXPORTNUM(360) ntstatus_xt NTAPI HalInitiateShutdown
+XBSYSAPI EXPORTNUM(360) ntstatus_xt XBOXAPI HalInitiateShutdown
 (
 );
 
-XBSYSAPI EXPORTNUM(365) void_xt NTAPI HalEnableSecureTrayEject
+XBSYSAPI EXPORTNUM(365) void_xt XBOXAPI HalEnableSecureTrayEject
 (
 );
 
-XBSYSAPI EXPORTNUM(366) ntstatus_xt NTAPI HalWriteSMCScratchRegister
+XBSYSAPI EXPORTNUM(366) ntstatus_xt XBOXAPI HalWriteSMCScratchRegister
 (
 	IN dword_xt ScratchRegister
 );

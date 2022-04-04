@@ -344,7 +344,7 @@ void CxbxFormatPartitionByHandle(HANDLE hFile)
 	printf("Formatted EmuDisk Partition%d\n", CxbxGetPartitionNumberFromHandle(hFile));
 }
 
-void NTAPI CxbxIoApcDispatcher(PVOID ApcContext, xbox::PIO_STATUS_BLOCK /*IoStatusBlock*/, xbox::ulong_xt Reserved)
+void XBOXAPI CxbxIoApcDispatcher(PVOID ApcContext, xbox::PIO_STATUS_BLOCK /*IoStatusBlock*/, xbox::ulong_xt Reserved)
 {
 	CxbxIoDispatcherContext* cxbxContext = reinterpret_cast<CxbxIoDispatcherContext*>(ApcContext);
 	std::get<xbox::PIO_APC_ROUTINE>(*cxbxContext)(

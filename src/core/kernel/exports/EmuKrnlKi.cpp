@@ -180,7 +180,7 @@ xbox::void_xt xbox::KiClockIsr
 	KfLowerIrql(OldIrql);
 }
 
-xbox::void_xt NTAPI xbox::KiCheckTimerTable
+xbox::void_xt XBOXAPI xbox::KiCheckTimerTable
 (
 	IN xbox::ULARGE_INTEGER CurrentTime
 )
@@ -238,7 +238,7 @@ xbox::void_xt xbox::KxInsertTimer
 	}
 }
 
-xbox::void_xt FASTCALL xbox::KiCompleteTimer
+xbox::void_xt XFASTCALL xbox::KiCompleteTimer
 (
 	IN xbox::PKTIMER Timer,
 	IN xbox::ulong_xt Hand
@@ -322,7 +322,7 @@ xbox::void_xt xbox::KxRemoveTreeTimer
 	}
 }
 
-xbox::boolean_xt FASTCALL xbox::KiInsertTimerTable
+xbox::boolean_xt XFASTCALL xbox::KiInsertTimerTable
 (
 	IN xbox::PKTIMER Timer,
 	IN xbox::ulong_xt Hand
@@ -379,7 +379,7 @@ xbox::boolean_xt FASTCALL xbox::KiInsertTimerTable
 	return Expired;
 }
 
-xbox::boolean_xt FASTCALL xbox::KiInsertTreeTimer
+xbox::boolean_xt XFASTCALL xbox::KiInsertTreeTimer
 (
 	IN xbox::PKTIMER Timer,
 	IN xbox::LARGE_INTEGER Interval
@@ -467,7 +467,7 @@ xbox::boolean_xt xbox::KiComputeDueTime
 	return TRUE;
 }
 
-xbox::boolean_xt FASTCALL xbox::KiSignalTimer
+xbox::boolean_xt XFASTCALL xbox::KiSignalTimer
 (
 	IN xbox::PKTIMER Timer
 )
@@ -522,7 +522,7 @@ xbox::boolean_xt FASTCALL xbox::KiSignalTimer
 	return RequestInterrupt;
 }
 
-xbox::void_xt NTAPI xbox::KiTimerExpiration
+xbox::void_xt XBOXAPI xbox::KiTimerExpiration
 (
 	IN xbox::PKDPC Dpc,
 	IN xbox::PVOID DeferredContext,
@@ -751,7 +751,7 @@ xbox::void_xt NTAPI xbox::KiTimerExpiration
 	}
 }
 
-xbox::void_xt FASTCALL xbox::KiTimerListExpire
+xbox::void_xt XFASTCALL xbox::KiTimerListExpire
 (
 	IN xbox::PLIST_ENTRY ExpiredListHead,
 	IN xbox::KIRQL OldIrql
@@ -859,7 +859,7 @@ xbox::void_xt FASTCALL xbox::KiTimerListExpire
 	}
 }
 
-xbox::void_xt FASTCALL xbox::KiWaitSatisfyAll
+xbox::void_xt XFASTCALL xbox::KiWaitSatisfyAll
 (
 	IN xbox::PKWAIT_BLOCK WaitBlock
 )
@@ -929,7 +929,7 @@ xbox::void_xt xbox::KiExecuteUserApc()
 	KiExecuteApc<UserMode>();
 }
 
-xbox::PLARGE_INTEGER FASTCALL xbox::KiComputeWaitInterval
+xbox::PLARGE_INTEGER XFASTCALL xbox::KiComputeWaitInterval
 (
 	IN xbox::PLARGE_INTEGER OriginalTime,
 	IN xbox::PLARGE_INTEGER DueTime,
@@ -947,7 +947,7 @@ xbox::PLARGE_INTEGER FASTCALL xbox::KiComputeWaitInterval
 }
 
 // Source: ReactOS
-xbox::void_xt NTAPI xbox::KiSuspendNop(
+xbox::void_xt XBOXAPI xbox::KiSuspendNop(
 	IN PKAPC Apc,
 	IN PKNORMAL_ROUTINE* NormalRoutine,
 	IN PVOID* NormalContext,
@@ -964,7 +964,7 @@ xbox::void_xt NTAPI xbox::KiSuspendNop(
 }
 
 // Source: ReactOS
-xbox::void_xt NTAPI xbox::KiSuspendThread(
+xbox::void_xt XBOXAPI xbox::KiSuspendThread(
 	IN PVOID NormalContext,
 	IN PVOID SystemArgument1,
 	IN PVOID SystemArgument2
@@ -979,7 +979,7 @@ xbox::void_xt NTAPI xbox::KiSuspendThread(
 		zeroptr);
 }
 
-xbox::void_xt NTAPI xbox::KiThreadStartup(void_xt)
+xbox::void_xt XBOXAPI xbox::KiThreadStartup(void_xt)
 {
 	PKSTART_FRAME StartFrame;
 	PKSWITCHFRAME SwitchFrame;

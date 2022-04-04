@@ -21,7 +21,7 @@ namespace xbox
 // ******************************************************************
 // * PsCreateSystemThread
 // ******************************************************************
-XBSYSAPI EXPORTNUM(254) ntstatus_xt NTAPI PsCreateSystemThread
+XBSYSAPI EXPORTNUM(254) ntstatus_xt XBOXAPI PsCreateSystemThread
 (
 	OUT PHANDLE         ThreadHandle,
 	OUT PHANDLE          ThreadId OPTIONAL,
@@ -33,7 +33,7 @@ XBSYSAPI EXPORTNUM(254) ntstatus_xt NTAPI PsCreateSystemThread
 // ******************************************************************
 // * PsCreateSystemThreadEx
 // ******************************************************************
-XBSYSAPI EXPORTNUM(255) ntstatus_xt NTAPI PsCreateSystemThreadEx
+XBSYSAPI EXPORTNUM(255) ntstatus_xt XBOXAPI PsCreateSystemThreadEx
 (
 	OUT PHANDLE         ThreadHandle,
 	IN  ulong_xt           ThreadExtensionSize,
@@ -50,7 +50,7 @@ XBSYSAPI EXPORTNUM(255) ntstatus_xt NTAPI PsCreateSystemThreadEx
 // ******************************************************************
 // * 0x0100 - PsQueryStatistics()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(256) ntstatus_xt NTAPI PsQueryStatistics
+XBSYSAPI EXPORTNUM(256) ntstatus_xt XBOXAPI PsQueryStatistics
 (
 	IN OUT PPS_STATISTICS ProcessStatistics
 );
@@ -58,7 +58,7 @@ XBSYSAPI EXPORTNUM(256) ntstatus_xt NTAPI PsQueryStatistics
 // ******************************************************************
 // * PsSetCreateThreadNotifyRoutine
 // ******************************************************************
-XBSYSAPI EXPORTNUM(257) ntstatus_xt NTAPI PsSetCreateThreadNotifyRoutine
+XBSYSAPI EXPORTNUM(257) ntstatus_xt XBOXAPI PsSetCreateThreadNotifyRoutine
 (
 	IN PCREATE_THREAD_NOTIFY_ROUTINE NotifyRoutine
 );
@@ -66,7 +66,7 @@ XBSYSAPI EXPORTNUM(257) ntstatus_xt NTAPI PsSetCreateThreadNotifyRoutine
 // ******************************************************************
 // * PsTerminateSystemThread
 // ******************************************************************
-XBSYSAPI EXPORTNUM(258) void_xt NTAPI PsTerminateSystemThread(IN ntstatus_xt ExitStatus);
+XBSYSAPI EXPORTNUM(258) void_xt XBOXAPI PsTerminateSystemThread(IN ntstatus_xt ExitStatus);
 
 XBSYSAPI EXPORTNUM(259) OBJECT_TYPE PsThreadObjectType;
 

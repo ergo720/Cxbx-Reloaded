@@ -383,7 +383,7 @@ void CxbxFormatPartitionByHandle(HANDLE hFile);
 // Used by NtReadFile and NtWriteFile
 using CxbxIoDispatcherContext = std::tuple<xbox::PIO_STATUS_BLOCK, xbox::PIO_APC_ROUTINE, PVOID>;
 
-void NTAPI CxbxIoApcDispatcher
+void XBOXAPI CxbxIoApcDispatcher
 (
 	PVOID                  ApcContext,
 	xbox::PIO_STATUS_BLOCK IoStatusBlock,

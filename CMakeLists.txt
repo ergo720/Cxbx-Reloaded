@@ -305,6 +305,7 @@ file (GLOB CXBXR_SOURCE_EMU
  "${CXBXR_ROOT_DIR}/src/common/util/gloffscreen/gloffscreen_common.cpp"
  "${CXBXR_ROOT_DIR}/src/common/util/gloffscreen/gloffscreen_wgl.cpp"
  "${CXBXR_ROOT_DIR}/src/common/xbox/Logging.cpp"
+ "${CXBXR_ROOT_DIR}/src/common/XboxTypeAssertions.cpp"
  "${CXBXR_ROOT_DIR}/src/core/common/imgui/audio.cpp"
  "${CXBXR_ROOT_DIR}/src/core/common/imgui/ui.cpp"
  "${CXBXR_ROOT_DIR}/src/core/common/imgui/video.cpp"

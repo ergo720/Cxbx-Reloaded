@@ -437,7 +437,7 @@ static inline xbox::HANDLE ObpGetHandleByObjectThenDereferenceInline(const xbox:
 // ******************************************************************
 // * 0x00EF - ObCreateObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt NTAPI xbox::ObCreateObject
+XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt XBOXAPI xbox::ObCreateObject
 (
 	IN POBJECT_TYPE ObjectType,
 	IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
@@ -546,7 +546,7 @@ xbox::PVOID xbox::ObpGetObjectHandleContents(HANDLE Handle)
 	return NULL;
 }
 
-xbox::ulong_xt FASTCALL xbox::ObpComputeHashIndex(
+xbox::ulong_xt XFASTCALL xbox::ObpComputeHashIndex(
 	IN POBJECT_STRING ElementName
 )
 {
@@ -746,7 +746,7 @@ xbox::ntstatus_xt xbox::ObpClose(
 // ******************************************************************
 // * 0x00F1 - ObInsertObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(241) xbox::ntstatus_xt NTAPI xbox::ObInsertObject
+XBSYSAPI EXPORTNUM(241) xbox::ntstatus_xt XBOXAPI xbox::ObInsertObject
 (
 	IN PVOID Object,
 	IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
@@ -904,7 +904,7 @@ CleanupAndExit:
 // ******************************************************************
 // * 0x00F2 - ObMakeTemporaryObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(242) xbox::void_xt NTAPI xbox::ObMakeTemporaryObject
+XBSYSAPI EXPORTNUM(242) xbox::void_xt XBOXAPI xbox::ObMakeTemporaryObject
 (
 	IN PVOID Object
 )
@@ -918,7 +918,7 @@ XBSYSAPI EXPORTNUM(242) xbox::void_xt NTAPI xbox::ObMakeTemporaryObject
 // ******************************************************************
 // * 0x00F3 - ObOpenObjectByName()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(243) xbox::ntstatus_xt NTAPI xbox::ObOpenObjectByName
+XBSYSAPI EXPORTNUM(243) xbox::ntstatus_xt XBOXAPI xbox::ObOpenObjectByName
 (
 	IN POBJECT_ATTRIBUTES ObjectAttributes,
 	IN POBJECT_TYPE ObjectType,
@@ -979,7 +979,7 @@ XBSYSAPI EXPORTNUM(243) xbox::ntstatus_xt NTAPI xbox::ObOpenObjectByName
 // ******************************************************************
 // * 0x00F4 - ObOpenObjectByPointer()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(244) xbox::ntstatus_xt NTAPI xbox::ObOpenObjectByPointer
+XBSYSAPI EXPORTNUM(244) xbox::ntstatus_xt XBOXAPI xbox::ObOpenObjectByPointer
 (
 	IN PVOID Object,
 	IN POBJECT_TYPE ObjectType,
@@ -1006,7 +1006,7 @@ XBSYSAPI EXPORTNUM(244) xbox::ntstatus_xt NTAPI xbox::ObOpenObjectByPointer
 //
 // Differences from NT: There are no DesiredAccess, AccessMode, or
 //     HandleInformation parameters.
-XBSYSAPI EXPORTNUM(246) xbox::ntstatus_xt NTAPI xbox::ObReferenceObjectByHandle
+XBSYSAPI EXPORTNUM(246) xbox::ntstatus_xt XBOXAPI xbox::ObReferenceObjectByHandle
 (
 	IN HANDLE Handle,
 	IN POBJECT_TYPE ObjectType OPTIONAL,
@@ -1069,7 +1069,7 @@ XBSYSAPI EXPORTNUM(246) xbox::ntstatus_xt NTAPI xbox::ObReferenceObjectByHandle
 // ******************************************************************
 // * 0x00F7 - ObReferenceObjectByName()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(247) xbox::ntstatus_xt NTAPI xbox::ObReferenceObjectByName
+XBSYSAPI EXPORTNUM(247) xbox::ntstatus_xt XBOXAPI xbox::ObReferenceObjectByName
 (
 	IN POBJECT_STRING ObjectName,
 	IN ulong_xt Attributes,
@@ -1093,7 +1093,7 @@ XBSYSAPI EXPORTNUM(247) xbox::ntstatus_xt NTAPI xbox::ObReferenceObjectByName
 // ******************************************************************
 // * 0x00F8 - ObReferenceObjectByPointer()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(248) xbox::ntstatus_xt NTAPI xbox::ObReferenceObjectByPointer
+XBSYSAPI EXPORTNUM(248) xbox::ntstatus_xt XBOXAPI xbox::ObReferenceObjectByPointer
 (
 	IN PVOID Object,
 	IN POBJECT_TYPE ObjectType
@@ -1131,7 +1131,7 @@ XBSYSAPI EXPORTNUM(249) xbox::OBJECT_TYPE xbox::ObSymbolicLinkObjectType =
 // ******************************************************************
 // * 0x00FA - ObfDereferenceObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(250) xbox::void_xt FASTCALL xbox::ObfDereferenceObject
+XBSYSAPI EXPORTNUM(250) xbox::void_xt XFASTCALL xbox::ObfDereferenceObject
 (
 	IN PVOID Object
 )
@@ -1167,7 +1167,7 @@ XBSYSAPI EXPORTNUM(250) xbox::void_xt FASTCALL xbox::ObfDereferenceObject
 // ******************************************************************
 // * 0x00FB - ObfReferenceObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(251) xbox::void_xt FASTCALL xbox::ObfReferenceObject
+XBSYSAPI EXPORTNUM(251) xbox::void_xt XFASTCALL xbox::ObfReferenceObject
 (
 	IN PVOID Object
 )

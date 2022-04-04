@@ -61,7 +61,7 @@ namespace xbox
 		IN unsigned int ScalingFactor
 	);
 
-	xbox::void_xt NTAPI KiCheckTimerTable
+	xbox::void_xt XBOXAPI KiCheckTimerTable
 	(
 		IN ULARGE_INTEGER CurrentTime
 	);
@@ -72,7 +72,7 @@ namespace xbox
 		IN ulong_xt Hand
 	);
 
-	void_xt FASTCALL KiCompleteTimer
+	void_xt XFASTCALL KiCompleteTimer
 	(
 		IN PKTIMER Timer,
 		IN ulong_xt Hand
@@ -89,13 +89,13 @@ namespace xbox
 		IN PKTIMER Timer
 	);
 
-	boolean_xt FASTCALL KiInsertTimerTable
+	boolean_xt XFASTCALL KiInsertTimerTable
 	(
 		IN PKTIMER Timer,
 		IN ulong_xt Hand
 	);
 
-	boolean_xt FASTCALL KiInsertTreeTimer
+	boolean_xt XFASTCALL KiInsertTreeTimer
 	(
 		IN PKTIMER Timer,
 		IN LARGE_INTEGER Interval
@@ -113,12 +113,12 @@ namespace xbox
 		OUT PULONG Hand
 	);
 
-	boolean_xt FASTCALL KiSignalTimer
+	boolean_xt XFASTCALL KiSignalTimer
 	(
 		IN PKTIMER Timer
 	);
 
-	void_xt NTAPI KiTimerExpiration
+	void_xt XBOXAPI KiTimerExpiration
 	(
 		IN PKDPC Dpc,
 		IN PVOID DeferredContext,
@@ -126,13 +126,13 @@ namespace xbox
 		IN PVOID SystemArgument2
 	);
 
-	void_xt FASTCALL KiTimerListExpire
+	void_xt XFASTCALL KiTimerListExpire
 	(
 		IN PLIST_ENTRY ExpiredListHead,
 		IN KIRQL OldIrql
 	);
 
-	void_xt FASTCALL KiWaitSatisfyAll
+	void_xt XFASTCALL KiWaitSatisfyAll
 	(
 		IN PKWAIT_BLOCK WaitBlock
 	);
@@ -140,7 +140,7 @@ namespace xbox
 	void_xt KiExecuteKernelApc();
 	void_xt KiExecuteUserApc();
 
-	PLARGE_INTEGER FASTCALL KiComputeWaitInterval
+	PLARGE_INTEGER XFASTCALL KiComputeWaitInterval
 	(
 		IN PLARGE_INTEGER OriginalTime,
 		IN PLARGE_INTEGER DueTime,
@@ -148,7 +148,7 @@ namespace xbox
 	);
 
 	// Source: ReactOS
-	void_xt NTAPI KiSuspendNop(
+	void_xt XBOXAPI KiSuspendNop(
 		IN PKAPC Apc,
 		IN PKNORMAL_ROUTINE* NormalRoutine,
 		IN PVOID* NormalContext,
@@ -157,13 +157,13 @@ namespace xbox
 	);
 
 	// Source: ReactOS
-	void_xt NTAPI KiSuspendThread(
+	void_xt XBOXAPI KiSuspendThread(
 		IN PVOID NormalContext,
 		IN PVOID SystemArgument1,
 		IN PVOID SystemArgument2
 	);
 
-	void_xt NTAPI KiThreadStartup(void_xt);
+	void_xt XBOXAPI KiThreadStartup(void_xt);
 
 	xbox::void_xt KiInitializeContextThread(
 		IN PKTHREAD Thread,

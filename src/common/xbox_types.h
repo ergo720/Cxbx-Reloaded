@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <climits>
 #include <cuchar>
+#include <concepts>
 
 
 namespace xbox
@@ -36,9 +37,11 @@ namespace xbox
 	// ******************************************************************
 	// * Calling conventions
 	// ******************************************************************
-	// TODO: Remove __stdcall once lib86cpu is implemented.
+	// TODO: Remove this once lib86cpu is implemented.
 	#define XBOXAPI             __stdcall
 	#define XCALLBACK           XBOXAPI
+	#define XCDECL              __cdecl
+	#define XFASTCALL           __fastcall
 
 	// ******************************************************************
 	// * Basic types
@@ -83,6 +86,143 @@ namespace xbox
 	// ******************************************************************
 	// * Pointer types
 	// ******************************************************************
+	template<typename T, typename U>
+	concept CanComparePtr = requires (T * t, U * u) { t == u; };
+
+	template<typename T>
+	class ptr_xt
+	{
+	public:
+		using PT = T;
+
+		ptr_xt() = default;
+
+		ptr_xt(const addr_xt val) { m_ptr = val; }
+
+		ptr_xt(const T *val) { m_ptr = reinterpret_cast<addr_xt>(val); }
+
+		std::add_lvalue_reference_t<T> operator[](const std::uint32_t idx) const requires (!std::is_void_v<T>)
+		{
+			return *reinterpret_cast<T *>(m_ptr + sizeof(T) * idx);
+		}
+
+		ptr_xt &operator++() requires (!std::is_void_v<T>) { m_ptr += sizeof(T); return *this; }
+
+		ptr_xt &operator--() requires (!std::is_void_v<T>) { m_ptr -= sizeof(T); return *this; }
+
+		ptr_xt operator++(int) { ptr_xt ret(*this); ++(*this); return ret; }
+
+		ptr_xt operator--(int) { ptr_xt ret(*this); --(*this); return ret; }
+
+		ptr_xt operator+(const std::uint32_t n) const requires (!std::is_void_v<T>) { return m_ptr + sizeof(T) * n; }
+
+		ptr_xt operator-(const std::uint32_t n) const requires (!std::is_void_v<T>) { return m_ptr - sizeof(T) * n; }
+
+		ptr_xt operator-(const ptr_xt &val) const requires (!std::is_void_v<T>) { return (m_ptr - val.m_ptr) / sizeof(T); }
+
+		ptr_xt &operator+=(const std::uint32_t n) requires (!std::is_void_v<T>) { *this = *this + n; return *this; }
+
+		ptr_xt &operator-=(const std::uint32_t n) requires (!std::is_void_v<T>) { *this = *this - n; return *this; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator==(const ptr_xt<U> &val) const { return m_ptr == val.m_ptr; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator!=(const ptr_xt<U> &val) const { return m_ptr != val.m_ptr; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator>=(const ptr_xt<U> &val) const { return m_ptr >= val.m_ptr; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator<=(const ptr_xt<U> &val) const { return m_ptr <= val.m_ptr; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator>(const ptr_xt<U> &val) const { return m_ptr > val.m_ptr; }
+
+		template<typename U> requires CanComparePtr<T, U>
+		bool operator<(const ptr_xt<U> &val) const { return m_ptr < val.m_ptr; }
+
+		// Don't allow the logical AND and OR overloaded operators, because they don't support short-circuit evaluation,
+		// which can lead to unexpected results in code such as ptr && ptr->
+		bool operator&&(const ptr_xt &) const = delete;
+		bool operator||(const ptr_xt &) const = delete;
+
+		std::add_lvalue_reference_t<T> operator*() const requires (!std::is_void_v<T>) { return *reinterpret_cast<T *>(m_ptr); }
+
+		T *operator->() const requires (!std::is_void_v<T>) { return reinterpret_cast<T *>(m_ptr); }
+
+		template<typename U>
+		operator ptr_xt<U>() const { return m_ptr; }
+
+		explicit operator bool() const { return m_ptr != zero; }
+
+		T *cast() const { return reinterpret_cast<T *>(m_ptr); }
+
+		T *get_native_ptr() const
+		{
+			// This is only really useful with cpu emulation, because with direct exec xbox ptr == native ptr
+			return cast();
+		}
+
+		addr_xt m_ptr;
+	};
+
+	// Template specializations for xbox function pointers
+	template<typename RT, typename... Args>
+	class ptr_xt<RT(XCDECL *)(Args...)>
+	{
+	public:
+		using FT = RT(XCDECL *)(Args...);
+		using PT = FT;
+
+		ptr_xt() = default;
+
+		ptr_xt(FT val) { m_ptr = reinterpret_cast<addr_xt>(val); };
+
+		RT operator()(Args&&... args) const { return reinterpret_cast<FT>(m_ptr)(std::forward<Args>(args)...); }
+
+		FT cast() const { return reinterpret_cast<FT>(m_ptr); }
+
+		addr_xt m_ptr;
+	};
+
+	template<typename RT, typename... Args>
+	class ptr_xt<RT(XBOXAPI *)(Args...)>
+	{
+	public:
+		using FT = RT(XBOXAPI *)(Args...);
+		using PT = FT;
+
+		ptr_xt() = default;
+
+		ptr_xt(FT val) { m_ptr = reinterpret_cast<addr_xt>(val); };
+
+		RT operator()(Args&&... args) const { return reinterpret_cast<FT>(m_ptr)(std::forward<Args>(args)...); }
+
+		FT cast() const { return reinterpret_cast<FT>(m_ptr); }
+
+		addr_xt m_ptr;
+	};
+
+	template<typename RT, typename... Args>
+	class ptr_xt<RT(XFASTCALL *)(Args...)>
+	{
+	public:
+		using FT = RT(XFASTCALL *)(Args...);
+		using PT = FT;
+
+		ptr_xt() = default;
+
+		ptr_xt(FT val) { m_ptr = reinterpret_cast<addr_xt>(val); };
+
+		RT operator()(Args&&... args) const { return reinterpret_cast<FT>(m_ptr)(std::forward<Args>(args)...); }
+
+		FT cast() const { return reinterpret_cast<FT>(m_ptr); }
+
+		addr_xt m_ptr;
+	};
+
+	using pchar_xt = ptr_xt<char_xt>;
 	typedef char_xt *PCHAR;
 	typedef char_xt *PSZ;
 	typedef const char_xt *PCSZ;
@@ -127,12 +267,6 @@ namespace xbox
 		a.y = b.y;
 		a.z = b.z;
 	}
-
-	// ******************************************************************
-	// Type assertions
-	// ******************************************************************
-	static_assert(CHAR_BIT == 8);
-	static_assert(sizeof(char16_t) == 2);
 
 	// ******************************************************************
 	// Defines

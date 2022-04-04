@@ -94,7 +94,7 @@ boolean_xt ObpExtendObjectHandleTable();
 void_xt ObDissectName(OBJECT_STRING Path, POBJECT_STRING FirstName, POBJECT_STRING RemainingName);
 PVOID ObpGetObjectHandleContents(HANDLE Handle);
 PVOID ObpGetObjectHandleReference(HANDLE Handle);
-ulong_xt FASTCALL ObpComputeHashIndex(POBJECT_STRING ElementName);
+ulong_xt XFASTCALL ObpComputeHashIndex(POBJECT_STRING ElementName);
 PVOID ObpDestroyObjectHandle(HANDLE Handle);
 void_xt ObpDetachNamedObject(PVOID Object, KIRQL OldIrql);
 ntstatus_xt ObpClose(HANDLE Handle);
@@ -109,7 +109,7 @@ boolean_xt ObpLookupElementNameInDirectory(
 // ******************************************************************
 // * 0x00EF - ObCreateObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(239) ntstatus_xt NTAPI ObCreateObject
+XBSYSAPI EXPORTNUM(239) ntstatus_xt XBOXAPI ObCreateObject
 (
 	IN POBJECT_TYPE ObjectType,
 	IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
@@ -125,7 +125,7 @@ XBSYSAPI EXPORTNUM(240) OBJECT_TYPE ObDirectoryObjectType;
 // ******************************************************************
 // * 0x00F1 - ObInsertObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(241) ntstatus_xt NTAPI ObInsertObject
+XBSYSAPI EXPORTNUM(241) ntstatus_xt XBOXAPI ObInsertObject
 (
 	IN PVOID Object,
 	IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
@@ -136,7 +136,7 @@ XBSYSAPI EXPORTNUM(241) ntstatus_xt NTAPI ObInsertObject
 // ******************************************************************
 // * 0x00F2 - ObMakeTemporaryObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(242) void_xt NTAPI ObMakeTemporaryObject
+XBSYSAPI EXPORTNUM(242) void_xt XBOXAPI ObMakeTemporaryObject
 (
 	IN PVOID Object
 );
@@ -144,7 +144,7 @@ XBSYSAPI EXPORTNUM(242) void_xt NTAPI ObMakeTemporaryObject
 // ******************************************************************
 // * 0x00F3 - ObOpenObjectByName()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(243) ntstatus_xt NTAPI ObOpenObjectByName
+XBSYSAPI EXPORTNUM(243) ntstatus_xt XBOXAPI ObOpenObjectByName
 (
 	IN POBJECT_ATTRIBUTES ObjectAttributes,
 	IN POBJECT_TYPE ObjectType,
@@ -155,7 +155,7 @@ XBSYSAPI EXPORTNUM(243) ntstatus_xt NTAPI ObOpenObjectByName
 // ******************************************************************
 // * 0x00F4 - ObOpenObjectByPointer()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(244) ntstatus_xt NTAPI ObOpenObjectByPointer
+XBSYSAPI EXPORTNUM(244) ntstatus_xt XBOXAPI ObOpenObjectByPointer
 (
 	IN PVOID Object,
 	IN POBJECT_TYPE ObjectType,
@@ -183,7 +183,7 @@ XBSYSAPI EXPORTNUM(245) OBJECT_HANDLE_TABLE ObpObjectHandleTable;
 // ******************************************************************
 // * 0x00F6 - ObReferenceObjectByHandle()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(246) ntstatus_xt NTAPI ObReferenceObjectByHandle
+XBSYSAPI EXPORTNUM(246) ntstatus_xt XBOXAPI ObReferenceObjectByHandle
 (
     IN HANDLE Handle,
     IN POBJECT_TYPE ObjectType OPTIONAL,
@@ -193,7 +193,7 @@ XBSYSAPI EXPORTNUM(246) ntstatus_xt NTAPI ObReferenceObjectByHandle
 // ******************************************************************
 // * 0x00F7 - ObReferenceObjectByName()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(247) ntstatus_xt NTAPI ObReferenceObjectByName
+XBSYSAPI EXPORTNUM(247) ntstatus_xt XBOXAPI ObReferenceObjectByName
 (
 	IN POBJECT_STRING ObjectName,
 	IN ulong_xt Attributes,
@@ -205,7 +205,7 @@ XBSYSAPI EXPORTNUM(247) ntstatus_xt NTAPI ObReferenceObjectByName
 // ******************************************************************
 // * 0x00F8 - ObReferenceObjectByPointer()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(248) ntstatus_xt NTAPI ObReferenceObjectByPointer
+XBSYSAPI EXPORTNUM(248) ntstatus_xt XBOXAPI ObReferenceObjectByPointer
 (
 	IN PVOID Object,
 	IN POBJECT_TYPE ObjectType
@@ -219,7 +219,7 @@ XBSYSAPI EXPORTNUM(249) OBJECT_TYPE ObSymbolicLinkObjectType;
 // ******************************************************************
 // * 0x00FA - ObfDereferenceObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(250) void_xt FASTCALL ObfDereferenceObject
+XBSYSAPI EXPORTNUM(250) void_xt XFASTCALL ObfDereferenceObject
 (
 	IN PVOID Object
 );
@@ -227,7 +227,7 @@ XBSYSAPI EXPORTNUM(250) void_xt FASTCALL ObfDereferenceObject
 // ******************************************************************
 // * 0x00FB - ObfReferenceObject()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(251) void_xt FASTCALL ObfReferenceObject
+XBSYSAPI EXPORTNUM(251) void_xt XFASTCALL ObfReferenceObject
 (
 	IN PVOID Object
 );

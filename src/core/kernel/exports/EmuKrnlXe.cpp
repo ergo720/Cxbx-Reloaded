@@ -55,7 +55,7 @@ XBSYSAPI EXPORTNUM(326) xbox::OBJECT_STRING xbox::XeImageFileName =
 // count is now above zero.
 //
 // New to the XBOX.
-XBSYSAPI EXPORTNUM(327) xbox::ntstatus_xt NTAPI xbox::XeLoadSection
+XBSYSAPI EXPORTNUM(327) xbox::ntstatus_xt XBOXAPI xbox::XeLoadSection
 (
 	IN PXBEIMAGE_SECTION Section
 )
@@ -111,7 +111,7 @@ XBSYSAPI EXPORTNUM(327) xbox::ntstatus_xt NTAPI xbox::XeLoadSection
 // if the count is now zero.
 //
 // New to the XBOX.
-XBSYSAPI EXPORTNUM(328) xbox::ntstatus_xt NTAPI xbox::XeUnloadSection
+XBSYSAPI EXPORTNUM(328) xbox::ntstatus_xt XBOXAPI xbox::XeUnloadSection
 (
 	IN PXBEIMAGE_SECTION Section
 )
