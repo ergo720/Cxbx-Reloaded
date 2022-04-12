@@ -34,7 +34,7 @@ XBSYSAPI EXPORTNUM(13) void_xt XBOXAPI ExAcquireReadWriteLockShared
 // * Allocates pool memory
 // *
 // ******************************************************************
-XBSYSAPI EXPORTNUM(14) PVOID XBOXAPI ExAllocatePool
+XBSYSAPI EXPORTNUM(14) pvoid_xt XBOXAPI ExAllocatePool
 (
     IN size_xt NumberOfBytes
 );
@@ -46,7 +46,7 @@ XBSYSAPI EXPORTNUM(14) PVOID XBOXAPI ExAllocatePool
 // * Allocates pool memory with a tag
 // *
 // ******************************************************************
-XBSYSAPI EXPORTNUM(15) PVOID XBOXAPI ExAllocatePoolWithTag
+XBSYSAPI EXPORTNUM(15) pvoid_xt XBOXAPI ExAllocatePoolWithTag
 (
     IN size_xt NumberOfBytes,
     IN ulong_xt Tag
@@ -63,7 +63,7 @@ XBSYSAPI EXPORTNUM(16) OBJECT_TYPE ExEventObjectType;
 // ******************************************************************
 XBSYSAPI EXPORTNUM(17) void_xt XBOXAPI ExFreePool
 (
-    IN PVOID P
+    IN pvoid_xt P
 );
 
 // ******************************************************************

@@ -114,7 +114,7 @@ XBSYSAPI EXPORTNUM(260) xbox::ntstatus_xt XBOXAPI xbox::RtlAnsiStringToUnicodeSt
 	DestinationString->Length = (USHORT)(total - sizeof(WCHAR));
 	if (AllocateDestinationString) {
 		DestinationString->MaximumLength = (USHORT)total;
-		if (!(DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag(total, 'grtS'))) {
+		if (!(DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag(total, 'grtS').get_native_ptr())) { // TODO ptr
 			return X_STATUS_NO_MEMORY;
 		}
 	}
@@ -153,9 +153,9 @@ XBSYSAPI EXPORTNUM(261) xbox::ntstatus_xt XBOXAPI xbox::RtlAppendStringToString
 			result = X_STATUS_BUFFER_TOO_SMALL;
 		}
 		else {
-			CHAR *dstBuf = Destination->Buffer + Destination->Length;
-			CHAR *srcBuf = Source->Buffer;
-			memmove(dstBuf, srcBuf, srcLen);
+			pchar_xt dstBuf = Destination->Buffer + Destination->Length;
+			pchar_xt srcBuf = Source->Buffer;
+			memmove(dstBuf.get_native_ptr(), srcBuf.get_native_ptr(), srcLen);
 			Destination->Length += srcLen;
 		}
 	}
@@ -229,10 +229,10 @@ XBSYSAPI EXPORTNUM(263) xbox::ntstatus_xt XBOXAPI xbox::RtlAppendUnicodeToString
 // Debug API?
 XBSYSAPI EXPORTNUM(264) xbox::void_xt XBOXAPI xbox::RtlAssert
 (
-	PCHAR   FailedAssertion,
-	PCHAR   FileName,
+	pchar_xt   FailedAssertion,
+	pchar_xt   FileName,
 	ulong_xt   LineNumber,
-	PCHAR   Message
+	pchar_xt   Message
 )
 {
 	LOG_FUNC_BEGIN
@@ -243,9 +243,9 @@ XBSYSAPI EXPORTNUM(264) xbox::void_xt XBOXAPI xbox::RtlAssert
 		LOG_FUNC_END;
 
 	std::stringstream ss;
-	ss << "RtlAssert() raised by emulated program\n" << FileName << ":" << LineNumber << ":" << FailedAssertion ;
+	ss << "RtlAssert() raised by emulated program\n" << FileName.get_native_ptr() << ":" << LineNumber << ":" << FailedAssertion.get_native_ptr() ;
 	if (Message) {
-		ss << " " << Message;
+		ss << " " << Message.get_native_ptr();
 	}
 
 	ss << ")";
@@ -500,7 +500,7 @@ XBSYSAPI EXPORTNUM(269) xbox::size_xt XBOXAPI xbox::RtlCompareMemoryUlong
 		ptr++;
 	}
 
-	SIZE_T result = (SIZE_T)((PCHAR)ptr - (PCHAR)Source);
+	SIZE_T result = (SIZE_T)((pchar_xt::PT *)ptr - (pchar_xt::PT *)Source);
 
 	RETURN(result);
 }
@@ -527,14 +527,14 @@ XBSYSAPI EXPORTNUM(270) xbox::long_xt XBOXAPI xbox::RtlCompareString
 	USHORT l2 = String2->Length;
 	USHORT maxLen = l1 <= l2 ? l1 : l2;
 
-	CHAR *str1 = String1->Buffer;
-	CHAR *str2 = String2->Buffer;
+	pchar_xt str1 = String1->Buffer;
+	pchar_xt str2 = String2->Buffer;
 
 	if (CaseInSensitive) {
-		result = _strnicmp(str1, str2, maxLen);
+		result = _strnicmp(str1.get_native_ptr(), str2.get_native_ptr(), maxLen);
 	}
 	else {
-		result = strncmp(str1, str2, maxLen);
+		result = strncmp(str1.get_native_ptr(), str2.get_native_ptr(), maxLen);
 	}
 
 	RETURN(result);
@@ -594,15 +594,15 @@ XBSYSAPI EXPORTNUM(272) xbox::void_xt XBOXAPI xbox::RtlCopyString
 		return;
 	}
 
-	CHAR *pd = DestinationString->Buffer;
-	CHAR *ps = SourceString->Buffer;
+	pchar_xt pd = DestinationString->Buffer;
+	pchar_xt ps = SourceString->Buffer;
 	USHORT len = SourceString->Length;
 	if ((USHORT)len > DestinationString->MaximumLength) {
 		len = DestinationString->MaximumLength;
 	}
 
 	DestinationString->Length = (USHORT)len;
-	memcpy(pd, ps, len);
+	memcpy(pd.get_native_ptr(), ps.get_native_ptr(), len);
 }
 
 // ******************************************************************
@@ -652,7 +652,7 @@ XBSYSAPI EXPORTNUM(274) xbox::boolean_xt XBOXAPI xbox::RtlCreateUnicodeString
 	BOOLEAN result = TRUE;
 
 	ULONG bufferSize = (std::u16string(SourceString).length() + 1) * sizeof(WCHAR);
-	DestinationString->Buffer = (USHORT *)ExAllocatePoolWithTag(bufferSize, 'grtS');
+	DestinationString->Buffer = (USHORT *)ExAllocatePoolWithTag(bufferSize, 'grtS').get_native_ptr(); // TODO ptr
 	if (!DestinationString->Buffer) {
 		result = FALSE;
 	}
@@ -700,7 +700,7 @@ XBSYSAPI EXPORTNUM(276) xbox::ntstatus_xt XBOXAPI xbox::RtlDowncaseUnicodeString
 
 	if (AllocateDestinationString) {
 		DestinationString->MaximumLength = SourceString->Length;
-		DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag((ULONG)DestinationString->MaximumLength, 'grtS');
+		DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag((ULONG)DestinationString->MaximumLength, 'grtS').get_native_ptr(); // TODO ptr
 		if (DestinationString->Buffer == NULL) {
 			return X_STATUS_NO_MEMORY;
 		}
@@ -802,9 +802,9 @@ XBSYSAPI EXPORTNUM(279) xbox::boolean_xt XBOXAPI xbox::RtlEqualString
 		return FALSE;
 	}
 
-	CHAR *p1 = String1->Buffer;
-	CHAR *p2 = String2->Buffer;
-	CHAR *last = p1 + l1;
+	pchar_xt p1 = String1->Buffer;
+	pchar_xt p2 = String2->Buffer;
+	pchar_xt last = p1 + l1;
 
 	if (CaseInSensitive) {
 		while (p1 < last) {
@@ -1147,10 +1147,10 @@ XBSYSAPI EXPORTNUM(289) xbox::void_xt XBOXAPI xbox::RtlInitAnsiString
 		LOG_FUNC_ARG(SourceString)
 		LOG_FUNC_END;
 
-	DestinationString->Buffer = const_cast<PCHAR>(SourceString);
+	DestinationString->Buffer = const_cast<pchar_xt::PT *>(SourceString);
 	if (SourceString != NULL) {
 		CCHAR *pSourceString = (CCHAR*)(SourceString);
-		DestinationString->Buffer = const_cast<PCHAR>(SourceString);
+		DestinationString->Buffer = const_cast<pchar_xt::PT *>(SourceString);
 		DestinationString->Length = (USHORT)strlen(pSourceString);
 		DestinationString->MaximumLength = DestinationString->Length + 1;
 	}
@@ -1411,7 +1411,7 @@ XBSYSAPI EXPORTNUM(299) xbox::ntstatus_xt XBOXAPI xbox::RtlMultiByteToUnicodeN
 	IN     PWSTR UnicodeString,
 	IN     ulong_xt MaxBytesInUnicodeString,
 	IN     PULONG BytesInUnicodeString,
-	IN     PCHAR MultiByteString,
+	IN     pchar_xt MultiByteString,
 	IN     ulong_xt BytesInMultiByteString
 )
 {
@@ -1447,7 +1447,7 @@ XBSYSAPI EXPORTNUM(299) xbox::ntstatus_xt XBOXAPI xbox::RtlMultiByteToUnicodeN
 XBSYSAPI EXPORTNUM(300) xbox::ntstatus_xt XBOXAPI xbox::RtlMultiByteToUnicodeSize
 (
 	IN PULONG BytesInUnicodeString,
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt BytesInMultiByteString
 )
 {
@@ -1781,7 +1781,7 @@ XBSYSAPI EXPORTNUM(308) xbox::ntstatus_xt XBOXAPI xbox::RtlUnicodeStringToAnsiSt
 	DestinationString->Length = (ushort_xt)(AnsiMaxLength - 1);
 	if (AllocateDestinationString) {
 		DestinationString->MaximumLength = (ushort_xt)AnsiMaxLength;
-		if (!(DestinationString->Buffer = (PCHAR)ExAllocatePoolWithTag(AnsiMaxLength, 'grtS'))) {
+		if (!(DestinationString->Buffer = ExAllocatePoolWithTag(AnsiMaxLength, 'grtS'))) {
 			ret = X_STATUS_NO_MEMORY;
 			goto forceReturn;
 		}
@@ -1917,7 +1917,7 @@ XBSYSAPI EXPORTNUM(309) xbox::ntstatus_xt XBOXAPI xbox::RtlUnicodeStringToIntege
 // ******************************************************************
 XBSYSAPI EXPORTNUM(310) xbox::ntstatus_xt XBOXAPI xbox::RtlUnicodeToMultiByteN
 (
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -2025,7 +2025,7 @@ XBSYSAPI EXPORTNUM(314) xbox::ntstatus_xt XBOXAPI xbox::RtlUpcaseUnicodeString
 
 	if (AllocateDestinationString) {
 		DestinationString->MaximumLength = SourceString->Length;
-		DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag((ULONG)DestinationString->MaximumLength, 'grtS');
+		DestinationString->Buffer = (USHORT*)ExAllocatePoolWithTag((ULONG)DestinationString->MaximumLength, 'grtS').get_native_ptr(); // TODO ptr
 		if (DestinationString->Buffer == NULL) {
 			return X_STATUS_NO_MEMORY;
 		}
@@ -2053,7 +2053,7 @@ XBSYSAPI EXPORTNUM(314) xbox::ntstatus_xt XBOXAPI xbox::RtlUpcaseUnicodeString
 // ******************************************************************
 XBSYSAPI EXPORTNUM(315) xbox::ntstatus_xt XBOXAPI xbox::RtlUpcaseUnicodeToMultiByteN
 (
-	IN OUT PCHAR MultiByteString,
+	IN OUT pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -2134,8 +2134,8 @@ XBSYSAPI EXPORTNUM(317) xbox::void_xt XBOXAPI xbox::RtlUpperString
 		LOG_FUNC_ARG(SourceString)
 		LOG_FUNC_END;
 
-	char_xt *pDst = DestinationString->Buffer;
-	char_xt *pSrc = SourceString->Buffer;
+	pchar_xt pDst = DestinationString->Buffer;
+	pchar_xt pSrc = SourceString->Buffer;
 	ULONG length = SourceString->Length;
 	if ((USHORT)length > DestinationString->MaximumLength) {
 		length = DestinationString->MaximumLength;
@@ -2290,9 +2290,9 @@ XBSYSAPI EXPORTNUM(320) xbox::void_xt XBOXAPI xbox::RtlZeroMemory
 // ******************************************************************
 XBSYSAPI EXPORTNUM(352) xbox::void_xt XBOXAPI xbox::RtlRip
 (
-	PCHAR	ApiName,
-	PCHAR	Expression,
-	PCHAR	Message
+	pchar_xt	ApiName,
+	pchar_xt	Expression,
+	pchar_xt	Message
 )
 {
 	LOG_FUNC_BEGIN

@@ -103,7 +103,7 @@ boolean_xt ObpLookupElementNameInDirectory(
 	IN POBJECT_DIRECTORY Directory,
 	IN POBJECT_STRING ElementName,
 	IN boolean_xt ResolveSymbolicLink,
-	OUT PVOID *ReturnedObject
+	OUT ppvoid_xt ReturnedObject
 );
 
 // ******************************************************************

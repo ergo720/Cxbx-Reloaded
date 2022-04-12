@@ -246,6 +246,9 @@ inline auto _log_sanitize(T value, int ignored_length = 0)
 			return dst;
 		}
 	}
+	else if constexpr (xbox::IsXboxPtr<T>) {
+		return value.m_ptr;
+	}
 	else {
 		return value;
 	}
@@ -258,6 +261,17 @@ inline const char * _log_sanitize(BOOL value, int ignored_length = 0)
 	return value ? "TRUE" : "FALSE";
 }
 #endif
+
+template<typename T>
+uint32_t cast_and_log_ptr(T ptr)
+{
+	if constexpr (xbox::IsXboxPtr<T>) {
+		return ptr.m_ptr;
+	}
+	else {
+		return (uint32_t)ptr;
+	}
+}
 
 // Macro to ease declaring a _log_sanitize overload (invokeable via C) for type T
 #define LOG_SANITIZE_HEADER(C, T)                     \
@@ -389,7 +403,7 @@ extern thread_local std::string _logThreadPrefix;
 // LOG_FUNC_ARG_OUT prevents expansion of types, by only rendering as a pointer
 #define LOG_FUNC_ARG_OUT(arg) \
 		_had_arg = true; \
-		msg << LOG_ARG_OUT_START << #arg << " : " << hex4((uint32_t)arg);
+		msg << LOG_ARG_OUT_START << #arg << " : " << hex4(cast_and_log_ptr(arg));
 
 // LOG_FUNC_END closes off function and optional argument logging
 #define LOG_FUNC_END \

@@ -64,7 +64,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(XACTEngineCreate)
 
 	// TODO: Any other form of initialization?
 
-	*ppEngine = (X_XACTEngine*)ExAllocatePool(sizeof( X_XACTEngine ));
+	*ppEngine = (X_XACTEngine*)ExAllocatePool(sizeof( X_XACTEngine )).get_native_ptr(); // TODO ptr
 
 		
 	
@@ -108,7 +108,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(IXACTEngine_RegisterWaveBank)
 
 	// TODO: Implement
 
-	*ppWaveBank = (X_XACTWaveBank*)ExAllocatePool(sizeof( X_XACTWaveBank ));
+	*ppWaveBank = (X_XACTWaveBank*)ExAllocatePool(sizeof( X_XACTWaveBank )).get_native_ptr(); // TODO ptr
 
 	RETURN(S_OK);
 }
@@ -131,7 +131,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(IXACTEngine_RegisterStreamedWaveBank)
 
 	// TODO: Implement
 
-	*ppWaveBank = (X_XACTWaveBank*)ExAllocatePool(sizeof( X_XACTWaveBank ));
+	*ppWaveBank = (X_XACTWaveBank*)ExAllocatePool(sizeof( X_XACTWaveBank )).get_native_ptr(); // TODO ptr
 
 	RETURN(S_OK);
 }
@@ -156,7 +156,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(IXACTEngine_CreateSoundBank)
 
 	// TODO: Implement
 
-	*ppSoundBank = (X_XACTSoundBank*)ExAllocatePool(sizeof( X_XACTSoundBank ));
+	*ppSoundBank = (X_XACTSoundBank*)ExAllocatePool(sizeof( X_XACTSoundBank )).get_native_ptr(); // TODO ptr
 
 	RETURN(S_OK);
 }
@@ -202,7 +202,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(IXACTEngine_CreateSoundSource)
 		LOG_FUNC_ARG(ppSoundSource)
 		LOG_FUNC_END;
 
-	*ppSoundSource = (X_XACTSoundSource*)ExAllocatePool(sizeof( X_XACTSoundSource ));
+	*ppSoundSource = (X_XACTSoundSource*)ExAllocatePool(sizeof( X_XACTSoundSource )).get_native_ptr(); // TODO ptr
 
 	RETURN(S_OK);
 }

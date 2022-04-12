@@ -1037,7 +1037,7 @@ XBSYSAPI EXPORTNUM(206) xbox::ntstatus_xt XBOXAPI xbox::NtQueueApcThread
 		RETURN(result);
 	}
 
-	PKAPC Apc = static_cast<PKAPC>(ExAllocatePoolWithTag(sizeof(KAPC), 'pasP'));
+	PKAPC Apc = static_cast<PKAPC>(ExAllocatePoolWithTag(sizeof(KAPC), 'pasP').get_native_ptr()); // TODO ptr
 	if (Apc != zeroptr) {
 		KeInitializeApc(Apc, &Thread->Tcb, zeroptr, zeroptr, reinterpret_cast<PKNORMAL_ROUTINE>(ApcRoutine), UserMode, ApcRoutineContext);
 		if (!KeInsertQueueApc(Apc, ApcStatusBlock, ApcReserved, 0)) {
@@ -1097,12 +1097,12 @@ XBSYSAPI EXPORTNUM(207) xbox::ntstatus_xt XBOXAPI xbox::NtQueryDirectoryFile
 	{
 		if (FileMask != 0) {
 			// Xbox expects directories to be listed when *.* is passed
-			if (strncmp(FileMask->Buffer, "*.*", FileMask->Length) == 0) {
+			if (strncmp(FileMask->Buffer.get_native_ptr(), "*.*", FileMask->Length) == 0) {
 				FileMask->Length = 1;
-				std::strcpy(FileMask->Buffer, "*");
+				std::strcpy(FileMask->Buffer.get_native_ptr(), "*");
 			}
 
-			mbstowcs(/*Dest=*/wszObjectName, /*Source=*/FileMask->Buffer, /*MaxCount=*/MAX_PATH);
+			mbstowcs(/*Dest=*/wszObjectName, /*Source=*/FileMask->Buffer.get_native_ptr(), /*MaxCount=*/MAX_PATH);
 		} else
 			mbstowcs(/*Dest=*/wszObjectName, /*Source=*/"", /*MaxCount=*/MAX_PATH);
 

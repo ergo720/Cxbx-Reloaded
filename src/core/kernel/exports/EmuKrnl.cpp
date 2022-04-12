@@ -477,7 +477,7 @@ XBSYSAPI EXPORTNUM(357) xbox::IDE_CHANNEL_OBJECT xbox::IdexChannelObject = { };
 // ******************************************************************
 XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -493,7 +493,7 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = snprintf(string, count, format, ap);
+	INT Result = snprintf(string.get_native_ptr(), count, format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -504,7 +504,7 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(362) xbox::int_xt XCDECL xbox::RtlSprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 )
@@ -518,7 +518,7 @@ XBSYSAPI EXPORTNUM(362) xbox::int_xt XCDECL xbox::RtlSprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = sprintf(string, format, ap);
+	INT Result = sprintf(string.get_native_ptr(), format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -529,7 +529,7 @@ XBSYSAPI EXPORTNUM(362) xbox::int_xt XCDECL xbox::RtlSprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::RtlVsnprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
@@ -545,7 +545,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::RtlVsnprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = vsnprintf(string, count, format, ap);
+	INT Result = vsnprintf(string.get_native_ptr(), count, format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -556,7 +556,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::RtlVsnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(364) xbox::int_xt XCDECL xbox::RtlVsprintf
 (
-	IN PCHAR string,
+	IN pchar_xt string,
 	IN LPCCH format,
 	...
 )
@@ -570,7 +570,7 @@ XBSYSAPI EXPORTNUM(364) xbox::int_xt XCDECL xbox::RtlVsprintf
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = vsprintf(string, format, ap);
+	INT Result = vsprintf(string.get_native_ptr(), format, ap);
 	va_end(ap);
 
 	RETURN(Result);

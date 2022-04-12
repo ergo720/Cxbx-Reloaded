@@ -416,7 +416,7 @@ LOGRENDER(STRING)
 	return os
 		LOGRENDER_MEMBER(Length)
 		LOGRENDER_MEMBER(MaximumLength)
-		LOGRENDER_MEMBER_SANITIZED(Buffer, char *, value.Length);
+		LOGRENDER_MEMBER_SANITIZED(Buffer, pchar_xt, value.Length);
 }
 
 LOGRENDER(UNICODE_STRING)

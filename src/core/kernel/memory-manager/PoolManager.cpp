@@ -132,7 +132,7 @@ VAddr PoolManager::AllocatePool(size_t Size, uint32_t Tag)
 			MARK_POOL_HEADER_ALLOCATED(Entry);
 
 			Entry->PoolTag = Tag;
-			(reinterpret_cast<PULONG>((reinterpret_cast<PCHAR>(Entry) + POOL_OVERHEAD)))[0] = 0;
+			(reinterpret_cast<PULONG>((reinterpret_cast<xbox::pchar_xt::PT *>(Entry) + POOL_OVERHEAD)))[0] = 0;
 
 			RETURN(reinterpret_cast<VAddr>(Entry) + POOL_OVERHEAD);
 		}
@@ -150,7 +150,7 @@ VAddr PoolManager::AllocatePool(size_t Size, uint32_t Tag)
 		do {
 			if (IsListEmpty(ListHead) == false) {
 				Block = RemoveHeadList(ListHead);
-				Entry = reinterpret_cast<PPOOL_HEADER>((static_cast<PCHAR>(Block) - POOL_OVERHEAD));
+				Entry = reinterpret_cast<PPOOL_HEADER>((static_cast<xbox::pchar_xt::PT *>(Block) - POOL_OVERHEAD));
 
 				assert(Entry->BlockSize >= NeededSize);
 				assert(Entry->PoolType == 0);
@@ -181,7 +181,7 @@ VAddr PoolManager::AllocatePool(size_t Size, uint32_t Tag)
 					SplitEntry->PoolType = 0;
 					Index = SplitEntry->BlockSize;
 
-					InsertTailList(&PoolDesc->ListHeads[Index - 1], (reinterpret_cast<xbox::PLIST_ENTRY>((reinterpret_cast<PCHAR>(SplitEntry)
+					InsertTailList(&PoolDesc->ListHeads[Index - 1], (reinterpret_cast<xbox::PLIST_ENTRY>((reinterpret_cast<xbox::pchar_xt::PT *>(SplitEntry)
 						+ POOL_OVERHEAD))));
 				}
 
@@ -192,7 +192,7 @@ VAddr PoolManager::AllocatePool(size_t Size, uint32_t Tag)
 				Unlock();
 
 				Entry->PoolTag = Tag;
-				(reinterpret_cast<PULONGLONG>((reinterpret_cast<PCHAR>(Entry) + POOL_OVERHEAD)))[0] = 0;
+				(reinterpret_cast<PULONGLONG>((reinterpret_cast<xbox::pchar_xt::PT *>(Entry) + POOL_OVERHEAD)))[0] = 0;
 
 				RETURN(reinterpret_cast<VAddr>(Entry) + POOL_OVERHEAD);
 			}
@@ -223,7 +223,7 @@ VAddr PoolManager::AllocatePool(size_t Size, uint32_t Tag)
 		Entry->PreviousSize = 0;
 		ListHead = &PoolDesc->ListHeads[POOL_LIST_HEADS - 1];
 
-		InsertHeadList(ListHead, (reinterpret_cast<xbox::PLIST_ENTRY>((reinterpret_cast<PCHAR>(Entry) + POOL_OVERHEAD))));
+		InsertHeadList(ListHead, (reinterpret_cast<xbox::PLIST_ENTRY>((reinterpret_cast<xbox::pchar_xt::PT *>(Entry) + POOL_OVERHEAD))));
 
 	} while (true);
 }
@@ -254,7 +254,7 @@ void PoolManager::DeallocatePool(VAddr addr)
 		return;
 	}
 
-	Entry = reinterpret_cast<PPOOL_HEADER>(reinterpret_cast<PCHAR>(addr) - POOL_OVERHEAD);
+	Entry = reinterpret_cast<PPOOL_HEADER>(reinterpret_cast<xbox::pchar_xt::PT *>(addr) - POOL_OVERHEAD);
 
 	assert((Entry->PoolType & POOL_TYPE_MASK) != 0);
 
@@ -288,7 +288,7 @@ void PoolManager::DeallocatePool(VAddr addr)
 	if (PAGE_END(NextEntry) == false) {
 		if (NextEntry->PoolType == 0) {
 			Combined = true;
-			RemoveEntryList((reinterpret_cast<xbox::PLIST_ENTRY>(reinterpret_cast<PCHAR>(NextEntry) + POOL_OVERHEAD)));
+			RemoveEntryList((reinterpret_cast<xbox::PLIST_ENTRY>(reinterpret_cast<xbox::pchar_xt::PT *>(NextEntry) + POOL_OVERHEAD)));
 			Entry->BlockSize += NextEntry->BlockSize;
 		}
 	}
@@ -297,7 +297,7 @@ void PoolManager::DeallocatePool(VAddr addr)
 		NextEntry = reinterpret_cast<PPOOL_HEADER>(reinterpret_cast<PPOOL_BLOCK>(Entry) - Entry->PreviousSize);
 		if (NextEntry->PoolType == 0) {
 			Combined = true;
-			RemoveEntryList((reinterpret_cast<xbox::PLIST_ENTRY>(reinterpret_cast<PCHAR>(NextEntry) + POOL_OVERHEAD)));
+			RemoveEntryList((reinterpret_cast<xbox::PLIST_ENTRY>(reinterpret_cast<xbox::pchar_xt::PT *>(NextEntry) + POOL_OVERHEAD)));
 			NextEntry->BlockSize += Entry->BlockSize;
 			Entry = NextEntry;
 		}
@@ -320,11 +320,11 @@ void PoolManager::DeallocatePool(VAddr addr)
 				NextEntry->PreviousSize = Entry->BlockSize;
 			}
 			InsertTailList(&PoolDesc->ListHeads[Index - 1], (reinterpret_cast<xbox::PLIST_ENTRY>(
-				reinterpret_cast<PCHAR>(Entry) + POOL_OVERHEAD)));
+				reinterpret_cast<xbox::pchar_xt::PT *>(Entry) + POOL_OVERHEAD)));
 		}
 		else {
 			InsertHeadList(&PoolDesc->ListHeads[Index - 1], (reinterpret_cast<xbox::PLIST_ENTRY>(
-				reinterpret_cast<PCHAR>(Entry) + POOL_OVERHEAD)));
+				reinterpret_cast<xbox::pchar_xt::PT *>(Entry) + POOL_OVERHEAD)));
 		}
 	}
 
@@ -342,7 +342,7 @@ size_t PoolManager::QueryPoolSize(VAddr addr)
 		RETURN(g_VMManager.QuerySize(addr));
 	}
 
-	Entry = reinterpret_cast<PPOOL_HEADER>(reinterpret_cast<PCHAR>(addr) - POOL_OVERHEAD);
+	Entry = reinterpret_cast<PPOOL_HEADER>(reinterpret_cast<xbox::pchar_xt::PT *>(addr) - POOL_OVERHEAD);
 	size = static_cast<size_t>((Entry->BlockSize << POOL_BLOCK_SHIFT) - POOL_OVERHEAD);
 
 	RETURN(size);

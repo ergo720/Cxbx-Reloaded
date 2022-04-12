@@ -1394,15 +1394,15 @@ static void CxbxrKrnlInitHacks()
 			}
 		}
 
-		if (xbox::XeImageFileName.Buffer != xbox::zeroptr) {
+		if (xbox::XeImageFileName.Buffer) {
 			xbox::ExFreePool(xbox::XeImageFileName.Buffer);
 		}
 
 		// Assign the running Xbe path, so it can be accessed via the kernel thunk 'XeImageFileName' :
 		xbox::XeImageFileName.Length = static_cast<xbox::ushort_xt>(fileName.size());
 		xbox::XeImageFileName.MaximumLength = xbox::XeImageFileName.Length + 1;
-		xbox::XeImageFileName.Buffer = (PCHAR)xbox::ExAllocatePoolWithTag(xbox::XeImageFileName.MaximumLength, 'nFeX');
-		strncpy_s(xbox::XeImageFileName.Buffer, xbox::XeImageFileName.MaximumLength,fileName.c_str(), fileName.size());
+		xbox::XeImageFileName.Buffer = (xbox::pvoid_xt)xbox::ExAllocatePoolWithTag(xbox::XeImageFileName.MaximumLength, 'nFeX');
+		strncpy_s(xbox::XeImageFileName.Buffer.get_native_ptr(), xbox::XeImageFileName.MaximumLength,fileName.c_str(), fileName.size());
 		EmuLogInit(LOG_LEVEL::INFO, "XeImageFileName = %s", xbox::XeImageFileName.Buffer);
 	}
 

@@ -201,7 +201,7 @@ XBSYSAPI EXPORTNUM(13) xbox::void_xt XBOXAPI xbox::ExAcquireReadWriteLockShared
 // ******************************************************************
 // * 0x000E - ExAllocatePool()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(14) xbox::PVOID XBOXAPI xbox::ExAllocatePool
+XBSYSAPI EXPORTNUM(14) xbox::pvoid_xt XBOXAPI xbox::ExAllocatePool
 (
 	IN size_xt NumberOfBytes
 )
@@ -217,7 +217,7 @@ XBSYSAPI EXPORTNUM(14) xbox::PVOID XBOXAPI xbox::ExAllocatePool
 // * Differences from NT: There is no PoolType field, as the XBOX
 // * only has 1 pool, the non-paged pool.
 // ******************************************************************
-XBSYSAPI EXPORTNUM(15) xbox::PVOID XBOXAPI xbox::ExAllocatePoolWithTag
+XBSYSAPI EXPORTNUM(15) xbox::pvoid_xt XBOXAPI xbox::ExAllocatePoolWithTag
 (
 	IN size_xt NumberOfBytes,
 	IN ulong_xt Tag
@@ -228,7 +228,7 @@ XBSYSAPI EXPORTNUM(15) xbox::PVOID XBOXAPI xbox::ExAllocatePoolWithTag
 		LOG_FUNC_ARG(Tag)
 	LOG_FUNC_END;
 
-	PVOID pRet = reinterpret_cast<PVOID>(g_PoolManager.AllocatePool(NumberOfBytes, Tag));
+	pvoid_xt pRet = g_PoolManager.AllocatePool(NumberOfBytes, Tag);
 
 	RETURN(pRet);
 }
@@ -252,12 +252,12 @@ XBSYSAPI EXPORTNUM(16) xbox::OBJECT_TYPE xbox::ExEventObjectType =
 // ******************************************************************
 XBSYSAPI EXPORTNUM(17) xbox::void_xt XBOXAPI xbox::ExFreePool
 (
-	IN PVOID	P
+	IN pvoid_xt	P
 )
 {
 	LOG_FUNC_ONE_ARG(P);
 
-	g_PoolManager.DeallocatePool(reinterpret_cast<VAddr>(P));
+	g_PoolManager.DeallocatePool(P.m_ptr);
 }
 
 // ******************************************************************

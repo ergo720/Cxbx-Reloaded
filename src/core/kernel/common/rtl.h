@@ -53,10 +53,10 @@ XBSYSAPI EXPORTNUM(263) ntstatus_xt XBOXAPI RtlAppendUnicodeToString
 // ******************************************************************
 XBSYSAPI EXPORTNUM(264) void_xt XBOXAPI RtlAssert
 (
-    PCHAR   FailedAssertion,
-	PCHAR   FileName,
+	pchar_xt   FailedAssertion,
+	pchar_xt   FileName,
     ulong_xt   LineNumber,
-    PCHAR   Message
+	pchar_xt   Message
 );
 
 // ******************************************************************
@@ -392,7 +392,7 @@ XBSYSAPI EXPORTNUM(299) ntstatus_xt XBOXAPI RtlMultiByteToUnicodeN
 	IN     PWSTR UnicodeString,
 	IN     ulong_xt MaxBytesInUnicodeString,
 	IN     PULONG BytesInUnicodeString,
-	IN     PCHAR MultiByteString,
+	IN     pchar_xt MultiByteString,
 	IN     ulong_xt BytesInMultiByteString
 );
 
@@ -402,7 +402,7 @@ XBSYSAPI EXPORTNUM(299) ntstatus_xt XBOXAPI RtlMultiByteToUnicodeN
 XBSYSAPI EXPORTNUM(300) ntstatus_xt XBOXAPI RtlMultiByteToUnicodeSize
 (
 	IN PULONG BytesInUnicodeString,
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt BytesInMultiByteString
 );
 
@@ -489,7 +489,7 @@ XBSYSAPI EXPORTNUM(309) ntstatus_xt XBOXAPI RtlUnicodeStringToInteger
 // ******************************************************************
 XBSYSAPI EXPORTNUM(310) ntstatus_xt XBOXAPI RtlUnicodeToMultiByteN
 (
-	IN PCHAR MultiByteString,
+	IN pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -540,7 +540,7 @@ XBSYSAPI EXPORTNUM(314) ntstatus_xt XBOXAPI RtlUpcaseUnicodeString
 // ******************************************************************
 XBSYSAPI EXPORTNUM(315) ntstatus_xt XBOXAPI RtlUpcaseUnicodeToMultiByteN
 (
-	IN OUT PCHAR MultiByteString,
+	IN OUT pchar_xt MultiByteString,
 	IN ulong_xt MaxBytesInMultiByteString,
 	IN PULONG BytesInMultiByteString,
 	IN PWSTR UnicodeString,
@@ -600,9 +600,9 @@ XBSYSAPI EXPORTNUM(320) void_xt XBOXAPI RtlZeroMemory
 // ******************************************************************
 XBSYSAPI EXPORTNUM(352) void_xt XBOXAPI RtlRip
 (
- PCHAR	ApiName,
- PCHAR	Expression,
- PCHAR	Message
+	pchar_xt	ApiName,
+	pchar_xt	Expression,
+	pchar_xt	Message
 );
 
 }

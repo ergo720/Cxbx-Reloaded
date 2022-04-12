@@ -239,7 +239,7 @@ typedef struct _STRING
 {
     ushort_xt  Length;
     ushort_xt  MaximumLength;
-    PCHAR   Buffer;
+	pchar_xt   Buffer;
 }
 STRING, ANSI_STRING, *PSTRING, *PANSI_STRING;
 
@@ -486,41 +486,41 @@ OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 // ******************************************************************
 // * OBJECT_TYPE
 // ******************************************************************
-typedef PVOID(XBOXAPI *OB_ALLOCATE_METHOD)(
+using pob_allocate_method_xt = ptr_xt<pvoid_xt(XBOXAPI *)(
 	IN size_xt NumberOfBytes,
 	IN ulong_xt Tag
-	);
+	)>;
 
-typedef void_xt(XBOXAPI *OB_FREE_METHOD)(
-	IN PVOID Pointer
-	);
+using pob_free_method_xt = ptr_xt<void_xt(XBOXAPI *)(
+	IN pvoid_xt Pointer
+	)>;
 
-typedef void_xt(XBOXAPI *OB_CLOSE_METHOD)(
-	IN PVOID Object,
+using pob_close_method_xt = ptr_xt<void_xt(XBOXAPI *)(
+	IN pvoid_xt Object,
 	IN ulong_xt SystemHandleCount
-	);
+	)>;
 
-typedef void_xt(XBOXAPI *OB_DELETE_METHOD)(
-	IN PVOID Object
-	);
+using pob_delete_method_xt = ptr_xt<void_xt(XBOXAPI *)(
+	IN pvoid_xt Object
+	)>;
 
-typedef ntstatus_xt(XBOXAPI *OB_PARSE_METHOD)(
-	IN PVOID ParseObject,
+using pob_parse_method_xt = ptr_xt<ntstatus_xt(XBOXAPI *)(
+	IN pvoid_xt ParseObject,
 	IN struct _OBJECT_TYPE *ObjectType,
 	IN ulong_xt Attributes,
 	IN OUT POBJECT_STRING CompleteName,
 	IN OUT POBJECT_STRING RemainingName,
-	IN OUT PVOID Context OPTIONAL,
-	OUT PVOID *Object
-	);
+	IN OUT pvoid_xt Context OPTIONAL,
+	OUT ppvoid_xt Object
+	)>;
 
 typedef struct _OBJECT_TYPE
 {
-	OB_ALLOCATE_METHOD AllocateProcedure;
-    OB_FREE_METHOD FreeProcedure;
-    OB_CLOSE_METHOD CloseProcedure;
-    OB_DELETE_METHOD DeleteProcedure;
-    OB_PARSE_METHOD ParseProcedure;
+	pob_allocate_method_xt AllocateProcedure;
+	pob_free_method_xt FreeProcedure;
+	pob_close_method_xt CloseProcedure;
+	pob_delete_method_xt DeleteProcedure;
+	pob_parse_method_xt ParseProcedure;
 	PVOID DefaultObject;
 	ulong_xt PoolTag;
 }

@@ -252,7 +252,7 @@ XBSYSAPI EXPORTNUM(66) xbox::ntstatus_xt XBOXAPI xbox::IoCreateFile
 
 	// If we are NOT accessing a directory, and we match a partition path, we need to redirect to a partition.bin file
 	bool isDirectPartitionAccess = false;
-	std::string objectName = std::string(ObjectAttributes->ObjectName->Buffer, ObjectAttributes->ObjectName->Length);
+	std::string objectName = std::string(ObjectAttributes->ObjectName->Buffer.get_native_ptr(), ObjectAttributes->ObjectName->Length);
 	if ((CreateOptions & FILE_DIRECTORY_FILE) == 0 && _strnicmp(objectName.c_str(), DeviceHarddisk0PartitionPrefix.c_str(), DeviceHarddisk0PartitionPrefix.length()) == 0 && objectName.length() <= DeviceHarddisk0PartitionPrefix.length() + 2) {
 		isDirectPartitionAccess = true;
 	}

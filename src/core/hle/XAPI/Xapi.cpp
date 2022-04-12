@@ -73,7 +73,7 @@ std::recursive_mutex g_MuLock;
 // Declare trampolines
 #define XB_TRAMPOLINES(XB_MACRO)                                                                                                                                     \
     XB_MACRO(xbox::dword_xt,    WINAPI, XUnmountAlternateTitleA,  (xbox::char_xt)                                                                                );  \
-    XB_MACRO(xbox::ntstatus_xt, WINAPI, XapiMapLetterToDirectory, (xbox::PSTRING, xbox::PSTRING, const xbox::PCHAR, xbox::bool_xt, xbox::PCWSTR, xbox::bool_xt)  );  \
+    XB_MACRO(xbox::ntstatus_xt, WINAPI, XapiMapLetterToDirectory, (xbox::PSTRING, xbox::PSTRING, const xbox::pchar_xt, xbox::bool_xt, xbox::PCWSTR, xbox::bool_xt)  );  \
 
 XB_TRAMPOLINES(XB_trampoline_declare);
 
@@ -1052,7 +1052,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMUA)
 (
 	dword_xt dwPort,                  
 	dword_xt dwSlot,                  
-	PCHAR pchDrive               
+	pchar_xt pchDrive
 )
 {
 	LOG_FUNC_BEGIN
@@ -1065,7 +1065,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMUA)
 
 	char lett = MuPort2Lett(dwPort, dwSlot);
 	if (MuIsMounted(lett)) {
-		if (pchDrive != zeroptr) {
+		if (pchDrive) {
 			*pchDrive = lett;
 		}
 		RETURN(ERROR_ALREADY_ASSIGNED);
@@ -1088,7 +1088,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMUA)
 	}
 
 	MuSetMounted(lett);
-	if (pchDrive != zeroptr) {
+	if (pchDrive) {
 		*pchDrive = lett;
 	}
 
@@ -1102,7 +1102,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMURootA)
 (
 	dword_xt dwPort,                  
 	dword_xt dwSlot,                  
-	PCHAR pchDrive               
+	pchar_xt pchDrive
 )
 {
 	LOG_FUNC_BEGIN
@@ -1115,7 +1115,7 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMURootA)
 
 	char_xt lett = MuPort2Lett(dwPort, dwSlot);
 	if (MuIsMounted(lett)) {
-		if (pchDrive != zeroptr) {
+		if (pchDrive) {
 			*pchDrive = lett;
 		}
 		RETURN(ERROR_ALREADY_ASSIGNED);
@@ -1129,14 +1129,14 @@ xbox::dword_xt WINAPI xbox::EMUPATCH(XMountMURootA)
 	ntstatus_xt status = IoCreateSymbolicLink(&mu_path, &mu_dev);
 
 	if (!X_NT_SUCCESS(status)) {
-		if (pchDrive != zeroptr) {
+		if (pchDrive) {
 			*pchDrive = 0;
 		}
 		RETURN(RtlNtStatusToDosError(status));
 	}
 
 	MuSetMounted(lett);
-	if (pchDrive != zeroptr) {
+	if (pchDrive) {
 		*pchDrive = lett;
 	}
 

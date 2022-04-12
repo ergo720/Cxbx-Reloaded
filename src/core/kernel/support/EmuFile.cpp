@@ -514,13 +514,13 @@ std::string PSTRING_to_string(xbox::PSTRING const & src)
 		return "";
 	}
 
-	return std::string(src->Buffer, src->Length);
+	return std::string(src->Buffer.get_native_ptr(), src->Length);
 }
 
 void copy_string_to_PSTRING_to(std::string const & src, const xbox::PSTRING & dest)
 {
 	dest->Length = (USHORT)src.size();
-	memcpy(dest->Buffer, src.c_str(), src.size());
+	memcpy(dest->Buffer.get_native_ptr(), src.c_str(), src.size());
 }
 
 void replace_all(std::string& str, const std::string& from, const std::string& to) {
@@ -1044,7 +1044,7 @@ NtDll::FILE_LINK_INFORMATION * _XboxToNTLinkInfo(xbox::FILE_LINK_INFORMATION *xb
 
 	// Build the native FILE_LINK_INFORMATION struct
 	*Length = sizeof(NtDll::FILE_LINK_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
-	NtDll::FILE_LINK_INFORMATION *ntLinkInfo = (NtDll::FILE_LINK_INFORMATION *)xbox::ExAllocatePool(*Length);
+	NtDll::FILE_LINK_INFORMATION *ntLinkInfo = (NtDll::FILE_LINK_INFORMATION *)xbox::ExAllocatePool(*Length).get_native_ptr();
 	ntLinkInfo->ReplaceIfExists = xboxLinkInfo->ReplaceIfExists;
 	ntLinkInfo->RootDirectory = RootDirectory;
 	ntLinkInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);
@@ -1056,7 +1056,7 @@ NtDll::FILE_LINK_INFORMATION * _XboxToNTLinkInfo(xbox::FILE_LINK_INFORMATION *xb
 NtDll::FILE_RENAME_INFORMATION * _XboxToNTRenameInfo(xbox::FILE_RENAME_INFORMATION *xboxRenameInfo, ULONG *Length)
 {
 	// Convert the path from Xbox to native
-	std::string originalFileName(xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
+	std::string originalFileName(xboxRenameInfo->FileName.Buffer.get_native_ptr(), xboxRenameInfo->FileName.Length);
 	std::wstring convertedFileName;
 	NtDll::HANDLE RootDirectory = nullptr;
 	NTSTATUS res = CxbxConvertFilePath(originalFileName, /*OUT*/convertedFileName, /*IN OUT*/&RootDirectory, "NtSetInformationFile");
@@ -1064,7 +1064,7 @@ NtDll::FILE_RENAME_INFORMATION * _XboxToNTRenameInfo(xbox::FILE_RENAME_INFORMATI
 
 	// Build the native FILE_RENAME_INFORMATION struct
 	*Length = sizeof(NtDll::FILE_RENAME_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
-	NtDll::FILE_RENAME_INFORMATION *ntRenameInfo = (NtDll::FILE_RENAME_INFORMATION *)xbox::ExAllocatePool(*Length);
+	NtDll::FILE_RENAME_INFORMATION *ntRenameInfo = (NtDll::FILE_RENAME_INFORMATION *)xbox::ExAllocatePool(*Length).get_native_ptr();
 	ntRenameInfo->ReplaceIfExists = xboxRenameInfo->ReplaceIfExists;
 	ntRenameInfo->RootDirectory = RootDirectory;
 	ntRenameInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);

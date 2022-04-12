@@ -24,11 +24,24 @@
 // ******************************************************************
 
 #include "xbox_types.h"
+#include "core/kernel/common/types.h"
 #include <tuple>
 
 
 using namespace xbox;
-using all_xptr_types = std::tuple<pchar_xt>;
+using all_xptr_types = std::tuple<
+    // basic pointers
+    pchar_xt,
+    puchar_xt,
+    pvoid_xt,
+    ppvoid_xt,
+    // function pointers
+    pob_allocate_method_xt,
+    pob_free_method_xt,
+    pob_close_method_xt,
+    pob_delete_method_xt,
+    pob_parse_method_xt
+>;
 
 template<std::size_t idx>
 consteval bool assert_xptr_requirements()

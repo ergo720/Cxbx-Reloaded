@@ -661,7 +661,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(CDirectSound_DownloadEffectsImage)
             ExFreePool(ImageBufferBackup);
         }
 
-        ImageBufferBackup = static_cast<PBYTE>(ExAllocatePool(dwImageSize));
+        ImageBufferBackup = static_cast<PBYTE>(ExAllocatePool(dwImageSize).get_native_ptr()); // TODO ptr
         if (ImageBufferBackup == zeroptr) {
             return E_OUTOFMEMORY;
         }
@@ -691,7 +691,7 @@ xbox::hresult_xt WINAPI xbox::EMUPATCH(CDirectSound_DownloadEffectsImage)
             ExFreePool(ImageDescBuffer);
         }
 
-        ImageDescBuffer = static_cast<PBYTE>(ExAllocatePool(ImageDescSize));
+        ImageDescBuffer = static_cast<PBYTE>(ExAllocatePool(ImageDescSize).get_native_ptr()); // TODO ptr
         if (ImageDescBuffer == zeroptr) {
             return E_OUTOFMEMORY;
         }

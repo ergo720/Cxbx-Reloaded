@@ -91,9 +91,9 @@ XBSYSAPI EXPORTNUM(7) xbox::ntstatus_xt XBOXAPI xbox::DbgLoadImageSymbols
 // ******************************************************************
 // * 0x0008 - DbgPrint()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(8) xbox::ulong_xt _cdecl xbox::DbgPrint
+XBSYSAPI EXPORTNUM(8) xbox::ulong_xt XCDECL xbox::DbgPrint
 (
-	PCHAR  Format, ...
+	pchar_xt  Format, ...
 )
 {
 	LOG_FUNC_BEGIN;
@@ -101,7 +101,7 @@ XBSYSAPI EXPORTNUM(8) xbox::ulong_xt _cdecl xbox::DbgPrint
 		LOG_FUNC_ARG("...")
 		LOG_FUNC_END;
 
-	if (Format != NULL) {
+	if (Format) {
 		va_list argp, argp_copy;
 		va_start(argp, Format);
 
@@ -109,7 +109,7 @@ XBSYSAPI EXPORTNUM(8) xbox::ulong_xt _cdecl xbox::DbgPrint
 		// We make a copy of the argument structure, this prevents issues
 		// as the call to vsnprintf will modify the va_list.
 		va_copy(argp_copy, argp);
-		auto size = vsnprintf(nullptr, 0, Format, argp_copy);
+		auto size = vsnprintf(nullptr, 0, Format.get_native_ptr(), argp_copy);
 		va_end(argp_copy);
 
         auto buffer = (char*)malloc(size);
@@ -121,7 +121,7 @@ XBSYSAPI EXPORTNUM(8) xbox::ulong_xt _cdecl xbox::DbgPrint
         }
 
         // Perform the actual print operation
-		vsnprintf(buffer, size, Format, argp);
+		vsnprintf(buffer, size, Format.get_native_ptr(), argp);
 		va_end(argp);
 
 		// Allow DbgPrint to be disabled

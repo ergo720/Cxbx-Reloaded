@@ -142,7 +142,7 @@ xbox::ntstatus_xt xbox::ObpReferenceObjectByName(
 	}
 
 	BOOLEAN ResolveSymbolicLink = TRUE;
-	PVOID FoundObject;
+	pvoid_xt FoundObject;
 
 	if (RootDirectoryHandle != NULL) {
 		if (RootDirectoryHandle == ObDosDevicesDirectory()) {
@@ -152,7 +152,7 @@ xbox::ntstatus_xt xbox::ObpReferenceObjectByName(
 		} else {
 			FoundObject = (POBJECT_DIRECTORY)ObpGetObjectHandleContents(RootDirectoryHandle);
 
-			if (FoundObject == NULL) {
+			if (!FoundObject) {
 				result = X_STATUS_INVALID_HANDLE;
 				goto CleanupAndExit;
 			}
@@ -185,7 +185,7 @@ xbox::ntstatus_xt xbox::ObpReferenceObjectByName(
 	OBJECT_STRING ElementName;
 	for (;;) {
 		{
-			POBJECT_DIRECTORY Directory = (POBJECT_DIRECTORY)FoundObject;
+			POBJECT_DIRECTORY Directory = (POBJECT_DIRECTORY)FoundObject.get_native_ptr(); // TODO ptr
 			ObDissectName(RemainingName, &ElementName, &RemainingName);
 
 			if (RemainingName.Length != 0) {
@@ -208,10 +208,10 @@ xbox::ntstatus_xt xbox::ObpReferenceObjectByName(
 		}
 
 OpenRootDirectory:
-		POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(FoundObject);
+		POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(FoundObject.get_native_ptr()); // TODO ptr
 
 		if (RemainingName.Length == 0) {
-			if (ObjectHeader->Type->ParseProcedure != NULL) {
+			if (ObjectHeader->Type->ParseProcedure) {
 				goto InvokeParseProcedure;
 			}
 
@@ -221,13 +221,13 @@ OpenRootDirectory:
 			}
 
 			ObjectHeader->PointerCount++;
-			*ReturnedObject = FoundObject;
+			*ReturnedObject = FoundObject.get_native_ptr(); // TODO ptr
 			result = X_STATUS_SUCCESS;
 			goto CleanupAndExit;
 		}
 
 		if (ObjectHeader->Type != &ObDirectoryObjectType) {
-			if (ObjectHeader->Type->ParseProcedure == NULL) {
+			if (!ObjectHeader->Type->ParseProcedure) {
 				result = STATUS_OBJECT_PATH_NOT_FOUND;
 				goto CleanupAndExit;
 			}
@@ -242,16 +242,16 @@ InvokeParseProcedure:
 				RemainingName.MaximumLength = RemainingName.Length;
 			}
 
-			PVOID ParsedObject = NULL;
+			pvoid_xt ParsedObject = zero;
 			result = ObjectHeader->Type->ParseProcedure(FoundObject, ObjectType, Attributes, ObjectName, &RemainingName, ParseContext, &ParsedObject);
-			ObfDereferenceObject(FoundObject);
+			ObfDereferenceObject(FoundObject.get_native_ptr()); // TODO ptr
 
 			if (X_NT_SUCCESS(result)) {
-				if ((ObjectType == NULL) || (ObjectType == OBJECT_TO_OBJECT_HEADER(ParsedObject)->Type)) {
-					*ReturnedObject = ParsedObject;
+				if ((ObjectType == NULL) || (ObjectType == OBJECT_TO_OBJECT_HEADER(ParsedObject.get_native_ptr())->Type)) {
+					*ReturnedObject = ParsedObject.get_native_ptr(); // TODO ptr
 					result = X_STATUS_SUCCESS;
 				} else {
-					ObfDereferenceObject(ParsedObject);
+					ObfDereferenceObject(ParsedObject.get_native_ptr()); // TODO ptr
 					result = STATUS_OBJECT_TYPE_MISMATCH;
 				}
 			}
@@ -298,7 +298,7 @@ xbox::boolean_xt xbox::ObInitSystem()
 
 xbox::boolean_xt xbox::ObpExtendObjectHandleTable()
 {
-	PVOID* NewTable = (PVOID*)ExAllocatePoolWithTag(sizeof(PVOID) * OB_HANDLES_PER_TABLE, 'tHbO');
+	PVOID* NewTable = (PVOID*)ExAllocatePoolWithTag(sizeof(PVOID) * OB_HANDLES_PER_TABLE, 'tHbO').get_native_ptr(); // TODO ptr
 	if (NewTable == NULL) {
 		return FALSE;
 	}
@@ -312,7 +312,7 @@ xbox::boolean_xt xbox::ObpExtendObjectHandleTable()
 			SIZE_T OldRootTableSize = HandleToUlong(ObpObjectHandleTable.NextHandleNeedingPool) / (sizeof(PVOID*) * OB_HANDLES_PER_TABLE);
 			NewRootTableSize = OldRootTableSize + OB_TABLES_PER_SEGMENT;
 
-			NewRootTable = (PVOID**)ExAllocatePoolWithTag(sizeof(PVOID*) * NewRootTableSize, 'rHbO');
+			NewRootTable = (PVOID**)ExAllocatePoolWithTag(sizeof(PVOID*) * NewRootTableSize, 'rHbO').get_native_ptr(); // TODO ptr
 			if (NewRootTable == NULL) {
 				ExFreePool(NewTable);
 				return FALSE;
@@ -380,11 +380,11 @@ xbox::void_xt xbox::ObDissectName(OBJECT_STRING Path, POBJECT_STRING FirstName, 
 	
 	FirstName->Length = 0;
 	FirstName->MaximumLength = 0;
-	FirstName->Buffer = NULL;
+	FirstName->Buffer.m_ptr = NULL;
 
 	RemainingName->Length = 0;
 	RemainingName->MaximumLength = 0;
-	RemainingName->Buffer = NULL;
+	RemainingName->Buffer.m_ptr = NULL;
 
 	ULONG PathLength = Path.Length / sizeof(CHAR);
 
@@ -453,7 +453,7 @@ XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt XBOXAPI xbox::ObCreateObject
 		LOG_FUNC_END;
 
 	if (ObjectAttributes == NULL || ObjectAttributes->ObjectName == NULL) {
-		POBJECT_HEADER ObjectHeader = (POBJECT_HEADER)ObjectType->AllocateProcedure(offsetof(OBJECT_HEADER, Body) + ObjectBodySize, ObjectType->PoolTag);
+		POBJECT_HEADER ObjectHeader = (POBJECT_HEADER)ObjectType->AllocateProcedure(offsetof(OBJECT_HEADER, Body) + ObjectBodySize, ObjectType->PoolTag).get_native_ptr(); // TODO ptr
 
 		if (ObjectHeader == nullptr) {
 			RETURN(X_STATUS_INSUFFICIENT_RESOURCES);
@@ -471,7 +471,7 @@ XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt XBOXAPI xbox::ObCreateObject
 
 	OBJECT_STRING RemainingName = *ObjectAttributes->ObjectName;
 	OBJECT_STRING ElementName;
-	ElementName.Buffer = NULL;
+	ElementName.Buffer.m_ptr = NULL;
 	ElementName.Length = 0;
 
 	while (RemainingName.Length != 0) {
@@ -489,7 +489,7 @@ XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt XBOXAPI xbox::ObCreateObject
 
 	POBJECT_HEADER_NAME_INFO ObjectNameInfo = (POBJECT_HEADER_NAME_INFO)ObjectType->AllocateProcedure(
 		sizeof(OBJECT_HEADER_NAME_INFO) + offsetof(OBJECT_HEADER, Body) +
-		ObjectBodySize + ElementName.Length, ObjectType->PoolTag);
+		ObjectBodySize + ElementName.Length, ObjectType->PoolTag).get_native_ptr(); // TODO ptr
 
 	if (ObjectNameInfo == NULL) {
 		return X_STATUS_INSUFFICIENT_RESOURCES;
@@ -502,7 +502,7 @@ XBSYSAPI EXPORTNUM(239) xbox::ntstatus_xt XBOXAPI xbox::ObCreateObject
 	ObjectNameInfo->Name.Length = ElementName.Length;
 	ObjectNameInfo->Name.MaximumLength = ElementName.Length;
 
-	RtlCopyMemory(ObjectNameInfo->Name.Buffer, ElementName.Buffer, ElementName.Length);
+	RtlCopyMemory(ObjectNameInfo->Name.Buffer.get_native_ptr(), ElementName.Buffer.get_native_ptr(), ElementName.Length);
 
 	ObjectHeader->PointerCount = 1;
 	ObjectHeader->HandleCount = 0;
@@ -552,8 +552,8 @@ xbox::ulong_xt XFASTCALL xbox::ObpComputeHashIndex(
 {
 
 	ULONG HashIndex = 0;
-	PUCHAR Buffer = (PUCHAR)ElementName->Buffer;
-	PUCHAR BufferEnd = Buffer + ElementName->Length;
+	puchar_xt Buffer = (puchar_xt)ElementName->Buffer;
+	puchar_xt BufferEnd = Buffer + ElementName->Length;
 	
 	// Calculate hash of string data
 	UCHAR Char;
@@ -598,7 +598,7 @@ xbox::boolean_xt xbox::ObpLookupElementNameInDirectory(
 	IN POBJECT_DIRECTORY Directory,
 	IN POBJECT_STRING ElementName,
 	IN boolean_xt ResolveSymbolicLink,
-	OUT PVOID *ReturnedObject
+	OUT ppvoid_xt ReturnedObject
 )
 {
 	PVOID Object = NULL;
@@ -635,7 +635,7 @@ xbox::boolean_xt xbox::ObpLookupElementNameInDirectory(
 		ObjectHeaderNameInfo = ObjectHeaderNameInfo->ChainLink;
 	}
 
-	*ReturnedObject = NULL;
+	*ReturnedObject = zero;
 	return FALSE;
 }
 
@@ -719,7 +719,7 @@ xbox::ntstatus_xt xbox::ObpClose(
 		ulong_xt HandleCount = ObjectHeader->HandleCount;
 		ObjectHeader->HandleCount--;
 
-		if (ObjectHeader->Type->CloseProcedure != NULL) {
+		if (ObjectHeader->Type->CloseProcedure) {
 			ObUnlock(OldIrql);
 			ObjectHeader->Type->CloseProcedure(Object, HandleCount);
 			OldIrql = ObLock();
@@ -807,12 +807,12 @@ XBSYSAPI EXPORTNUM(241) xbox::ntstatus_xt XBOXAPI xbox::ObInsertObject
 		for (;;) {
 			OBJECT_STRING ElementName;
 			ObDissectName(RemainingName, &ElementName, &RemainingName);
-			PVOID FoundObject;
+			pvoid_xt FoundObject;
 			if (ObpLookupElementNameInDirectory(Directory, &ElementName, TRUE, &FoundObject)) {
 				if (RemainingName.Length == 0) {
 					if (ObpIsFlagSet(ObjectAttributes->Attributes, OBJ_OPENIF)) {
-						if (OBJECT_TO_OBJECT_HEADER(FoundObject)->Type == OBJECT_TO_OBJECT_HEADER(Object)->Type) {
-							InsertObject = FoundObject;
+						if (OBJECT_TO_OBJECT_HEADER(FoundObject.get_native_ptr())->Type == OBJECT_TO_OBJECT_HEADER(Object)->Type) {
+							InsertObject = FoundObject.get_native_ptr(); // TODO ptr
 							Directory = NULL;
 							break;
 						} else {
@@ -825,13 +825,13 @@ XBSYSAPI EXPORTNUM(241) xbox::ntstatus_xt XBOXAPI xbox::ObInsertObject
 					}
 				}
 
-				if (OBJECT_TO_OBJECT_HEADER(FoundObject)->Type !=
+				if (OBJECT_TO_OBJECT_HEADER(FoundObject.get_native_ptr())->Type !=
 					&ObDirectoryObjectType) {
 					result = STATUS_OBJECT_PATH_NOT_FOUND;
 					goto CleanupAndExit;
 				}
 
-				Directory = (POBJECT_DIRECTORY)FoundObject;
+				Directory = (POBJECT_DIRECTORY)FoundObject.get_native_ptr(); // TODO ptr
 			} else {
 				if (RemainingName.Length != 0) {
 					result = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -1149,7 +1149,7 @@ XBSYSAPI EXPORTNUM(250) xbox::void_xt XFASTCALL xbox::ObfDereferenceObject
 	POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
 	
 	if (InterlockedDecrement((::PLONG)(&ObjectHeader->PointerCount)) == 0) {
-		if (ObjectHeader->Type->DeleteProcedure != NULL) {
+		if (ObjectHeader->Type->DeleteProcedure) {
 			ObjectHeader->Type->DeleteProcedure(Object);
 		}
 

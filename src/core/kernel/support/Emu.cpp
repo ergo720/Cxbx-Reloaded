@@ -317,7 +317,7 @@ bool EmuTryHandleException(EXCEPTION_POINTERS *e)
 				switch (e->ContextRecord->Eax) {
 					case 1: // DEBUG_PRINT
 						// In this case, ECX should point to an ANSI String
-						printf("DEBUG_PRINT: %s\n", ((xbox::PANSI_STRING)e->ContextRecord->Ecx)->Buffer);
+						printf("DEBUG_PRINT: %s\n", ((xbox::PANSI_STRING)e->ContextRecord->Ecx)->Buffer.get_native_ptr());
 						break;
 					default:
 						printf("Unhandled Debug Command: int 2Dh, EAX = %d", e->ContextRecord->Eip);

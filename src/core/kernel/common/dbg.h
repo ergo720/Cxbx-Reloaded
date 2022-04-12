@@ -28,9 +28,10 @@ XBSYSAPI EXPORTNUM(7) ntstatus_xt XBOXAPI DbgLoadImageSymbols
 	IN PVOID Base,
 	IN ulong_ptr_xt ProcessId
 );
-XBSYSAPI EXPORTNUM(8) ulong_xt _cdecl DbgPrint
+
+XBSYSAPI EXPORTNUM(8) ulong_xt XCDECL DbgPrint
 (
-	PCHAR  Format, ...
+	pchar_xt  Format, ...
 );
 XBSYSAPI EXPORTNUM(10) ulong_xt XBOXAPI DbgPrompt
 (
