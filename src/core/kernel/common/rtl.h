@@ -605,6 +605,49 @@ XBSYSAPI EXPORTNUM(352) void_xt XBOXAPI RtlRip
 	pchar_xt	Message
 );
 
+// Wrappers
+XBSYSAPI EXPORTNUM(264) void_xt XBOXAPI WRAP(RtlAssert)
+(
+	PCHAR   FailedAssertion,
+	PCHAR   FileName,
+	ulong_xt   LineNumber,
+	PCHAR   Message
+);
+
+XBSYSAPI EXPORTNUM(299) ntstatus_xt XBOXAPI WRAP(RtlMultiByteToUnicodeN)
+(
+	IN     PWSTR UnicodeString,
+	IN     ulong_xt MaxBytesInUnicodeString,
+	IN     PULONG BytesInUnicodeString,
+	IN     PCHAR MultiByteString,
+	IN     ulong_xt BytesInMultiByteString
+);
+
+XBSYSAPI EXPORTNUM(300) ntstatus_xt XBOXAPI WRAP(RtlMultiByteToUnicodeSize)
+(
+	IN PULONG BytesInUnicodeString,
+	IN PCHAR MultiByteString,
+	IN ulong_xt BytesInMultiByteString
+);
+
+XBSYSAPI EXPORTNUM(310) ntstatus_xt XBOXAPI WRAP(RtlUnicodeToMultiByteN)
+(
+	IN PCHAR MultiByteString,
+	IN ulong_xt MaxBytesInMultiByteString,
+	IN PULONG BytesInMultiByteString,
+	IN PWSTR UnicodeString,
+	IN ulong_xt BytesInUnicodeString
+);
+
+XBSYSAPI EXPORTNUM(315) ntstatus_xt XBOXAPI WRAP(RtlUpcaseUnicodeToMultiByteN)
+(
+	IN OUT PCHAR MultiByteString,
+	IN ulong_xt MaxBytesInMultiByteString,
+	IN PULONG BytesInMultiByteString,
+	IN PWSTR UnicodeString,
+	IN ulong_xt BytesInUnicodeString
+);
+
 }
 
 #endif

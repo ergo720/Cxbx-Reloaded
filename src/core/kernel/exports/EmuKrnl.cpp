@@ -477,6 +477,21 @@ XBSYSAPI EXPORTNUM(357) xbox::IDE_CHANNEL_OBJECT xbox::IdexChannelObject = { };
 // ******************************************************************
 XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 (
+#ifndef CPU_EMU
+	IN PCHAR xstring,
+	IN size_xt count,
+	IN LPCCH format,
+	...
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(xstring)
+		LOG_FUNC_ARG(count)
+		LOG_FUNC_ARG(format)
+		LOG_FUNC_END;
+
+	pchar_xt string{ xstring };
+#else
 	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
@@ -488,6 +503,7 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 		LOG_FUNC_ARG(count)
 		LOG_FUNC_ARG(format)
 		LOG_FUNC_END;
+#endif
 
 	// UNTESTED. Possible test-case : debugchannel.xbe
 
@@ -504,6 +520,19 @@ XBSYSAPI EXPORTNUM(361) xbox::int_xt XCDECL xbox::RtlSnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(362) xbox::int_xt XCDECL xbox::RtlSprintf
 (
+#ifndef CPU_EMU
+	IN PCHAR xstring,
+	IN LPCCH format,
+	...
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(xstring)
+		LOG_FUNC_ARG(format)
+		LOG_FUNC_END;
+
+	pchar_xt string{ xstring };
+#else
 	IN pchar_xt string,
 	IN LPCCH format,
 	...
@@ -513,12 +542,13 @@ XBSYSAPI EXPORTNUM(362) xbox::int_xt XCDECL xbox::RtlSprintf
 		LOG_FUNC_ARG(string)
 		LOG_FUNC_ARG(format)
 		LOG_FUNC_END;
+#endif
 
 	// UNTESTED. Possible test-case : debugchannel.xbe
 
 	va_list ap;
 	va_start(ap, format);
-	INT Result = sprintf(string.get_native_ptr(), format, ap);
+	INT Result = vsprintf(string.get_native_ptr(), format, ap);
 	va_end(ap);
 
 	RETURN(Result);
@@ -532,7 +562,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::RtlVsnprintf
 	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
-	...
+	IN pchar_xt args
 )
 {
 	LOG_FUNC_BEGIN
@@ -543,10 +573,7 @@ XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::RtlVsnprintf
 
 	// UNTESTED. Possible test-case : debugchannel.xbe
 
-	va_list ap;
-	va_start(ap, format);
-	INT Result = vsnprintf(string.get_native_ptr(), count, format, ap);
-	va_end(ap);
+	INT Result = vsnprintf(string.get_native_ptr(), count, format, args.get_native_ptr());
 
 	RETURN(Result);
 }
@@ -558,7 +585,7 @@ XBSYSAPI EXPORTNUM(364) xbox::int_xt XCDECL xbox::RtlVsprintf
 (
 	IN pchar_xt string,
 	IN LPCCH format,
-	...
+	IN pchar_xt args
 )
 {
 	LOG_FUNC_BEGIN
@@ -568,10 +595,7 @@ XBSYSAPI EXPORTNUM(364) xbox::int_xt XCDECL xbox::RtlVsprintf
 
 	// UNTESTED. Possible test-case : debugchannel.xbe
 
-	va_list ap;
-	va_start(ap, format);
-	INT Result = vsprintf(string.get_native_ptr(), format, ap);
-	va_end(ap);
+	INT Result = vsprintf(string.get_native_ptr(), format, args.get_native_ptr());
 
 	RETURN(Result);
 }
@@ -683,4 +707,26 @@ XBSYSAPI EXPORTNUM(373) xbox::ntstatus_xt XBOXAPI xbox::IrtSweep // PROFILING
 	LOG_UNIMPLEMENTED();
 
 	RETURN(S_OK);
+}
+
+// Wrappers
+XBSYSAPI EXPORTNUM(363) xbox::int_xt XCDECL xbox::WRAP(RtlVsnprintf)
+(
+	IN PCHAR string,
+	IN size_xt count,
+	IN LPCCH format,
+	IN va_list args
+)
+{
+	return RtlVsnprintf(string, count, format, args);
+}
+
+XBSYSAPI EXPORTNUM(364) xbox::int_xt XCDECL xbox::WRAP(RtlVsprintf)
+(
+	IN PCHAR string,
+	IN LPCCH format,
+	IN va_list args
+)
+{
+	return RtlVsprintf(string, format, args);
 }

@@ -231,6 +231,18 @@ XBSYSAPI EXPORTNUM(58) SLIST_ENTRY * XFASTCALL KRNL(InterlockedPushEntrySList)
 	IN PSLIST_ENTRY ListEntry
 );
 
+// Wrappers
+XBSYSAPI EXPORTNUM(14) PVOID XBOXAPI WRAP(ExAllocatePool)
+(
+	IN size_xt NumberOfBytes
+);
+
+XBSYSAPI EXPORTNUM(15) PVOID XBOXAPI WRAP(ExAllocatePoolWithTag)
+(
+	IN size_xt NumberOfBytes,
+	IN ulong_xt Tag
+);
+
 }
 
 #endif

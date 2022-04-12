@@ -32,6 +32,7 @@ namespace xbox
 #define KRNL(API) KRNL##API
 #define RESTRICTED_POINTER
 //TODO : When #define RESTRICTED_POINTER __restrict
+#define WRAP(API) API##_Wrapper
 
 // ******************************************************************
 // * Null

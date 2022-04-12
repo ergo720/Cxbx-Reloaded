@@ -2304,3 +2304,61 @@ XBSYSAPI EXPORTNUM(352) xbox::void_xt XBOXAPI xbox::RtlRip
 	EmuLog(LOG_LEVEL::WARNING, "RtlRip@%s:\n\nASSERT FAILED:\n%s\n\nDescription:\n%s",
 		ApiName, Expression, Message);
 }
+
+// Wrappers
+XBSYSAPI EXPORTNUM(264) xbox::void_xt XBOXAPI xbox::WRAP(RtlAssert)
+(
+	PCHAR   FailedAssertion,
+	PCHAR   FileName,
+	ulong_xt   LineNumber,
+	PCHAR   Message
+)
+{
+	RtlAssert(FailedAssertion, FileName, LineNumber, Message);
+}
+
+XBSYSAPI EXPORTNUM(299) xbox::ntstatus_xt XBOXAPI xbox::WRAP(RtlMultiByteToUnicodeN)
+(
+	IN     PWSTR UnicodeString,
+	IN     ulong_xt MaxBytesInUnicodeString,
+	IN     PULONG BytesInUnicodeString,
+	IN     PCHAR MultiByteString,
+	IN     ulong_xt BytesInMultiByteString
+)
+{
+	return RtlMultiByteToUnicodeN(UnicodeString, MaxBytesInUnicodeString, BytesInUnicodeString, MultiByteString, BytesInMultiByteString);
+}
+
+XBSYSAPI EXPORTNUM(300) xbox::ntstatus_xt XBOXAPI xbox::WRAP(RtlMultiByteToUnicodeSize)
+(
+	IN PULONG BytesInUnicodeString,
+	IN PCHAR MultiByteString,
+	IN ulong_xt BytesInMultiByteString
+)
+{
+	return RtlMultiByteToUnicodeSize(BytesInUnicodeString, MultiByteString, BytesInMultiByteString);
+}
+
+XBSYSAPI EXPORTNUM(310) xbox::ntstatus_xt XBOXAPI xbox::WRAP(RtlUnicodeToMultiByteN)
+(
+	IN PCHAR MultiByteString,
+	IN ulong_xt MaxBytesInMultiByteString,
+	IN PULONG BytesInMultiByteString,
+	IN PWSTR UnicodeString,
+	IN ulong_xt BytesInUnicodeString
+)
+{
+	return RtlUnicodeToMultiByteN(MultiByteString, MaxBytesInMultiByteString, BytesInMultiByteString, UnicodeString, BytesInUnicodeString);
+}
+
+XBSYSAPI EXPORTNUM(315) xbox::ntstatus_xt XBOXAPI xbox::WRAP(RtlUpcaseUnicodeToMultiByteN)
+(
+	IN OUT PCHAR MultiByteString,
+	IN ulong_xt MaxBytesInMultiByteString,
+	IN PULONG BytesInMultiByteString,
+	IN PWSTR UnicodeString,
+	IN ulong_xt BytesInUnicodeString
+)
+{
+	return RtlUpcaseUnicodeToMultiByteN(MultiByteString, MaxBytesInMultiByteString, BytesInMultiByteString, UnicodeString, BytesInUnicodeString);
+}

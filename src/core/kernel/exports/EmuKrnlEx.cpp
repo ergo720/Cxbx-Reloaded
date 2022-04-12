@@ -823,3 +823,21 @@ XBSYSAPI EXPORTNUM(34) xbox::PLIST_ENTRY XFASTCALL xbox::ExfInterlockedRemoveHea
 	RETURN(ListEntry);
 
 }
+
+// Wrappers
+XBSYSAPI EXPORTNUM(14) xbox::PVOID XBOXAPI xbox::WRAP(ExAllocatePool)
+(
+	IN size_xt NumberOfBytes
+)
+{
+	return ExAllocatePool(NumberOfBytes).cast();
+}
+
+XBSYSAPI EXPORTNUM(15) xbox::PVOID XBOXAPI xbox::WRAP(ExAllocatePoolWithTag)
+(
+	IN size_xt NumberOfBytes,
+	IN ulong_xt Tag
+)
+{
+	return ExAllocatePoolWithTag(NumberOfBytes, Tag).cast();
+}

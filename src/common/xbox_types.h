@@ -175,7 +175,9 @@ namespace xbox
 
 		explicit operator bool() const { return m_ptr != zero; }
 
-		T *get_native_ptr() const { return reinterpret_cast<T *>(m_ptr); }
+		T *cast() const { return reinterpret_cast<T *>(m_ptr); }
+
+		T *get_native_ptr() const { return cast(); }
 
 		addr_xt m_ptr;
 	};

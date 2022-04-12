@@ -497,10 +497,17 @@ XBSYSAPI EXPORTNUM(357) IDE_CHANNEL_OBJECT IdexChannelObject;
 // ******************************************************************
 XBSYSAPI EXPORTNUM(361) int_xt XCDECL RtlSnprintf
 (
+#ifndef CPU_EMU
+	IN PCHAR xstring,
+	IN size_xt count,
+	IN LPCCH format,
+	...
+#else
 	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
 	...
+#endif
 );
 
 // ******************************************************************
@@ -508,9 +515,15 @@ XBSYSAPI EXPORTNUM(361) int_xt XCDECL RtlSnprintf
 // ******************************************************************
 XBSYSAPI EXPORTNUM(362) int_xt XCDECL RtlSprintf
 (
+#ifndef CPU_EMU
+	IN PCHAR xstring,
+	IN LPCCH format,
+	...
+#else
 	IN pchar_xt string,
 	IN LPCCH format,
 	...
+#endif
 );
 
 // ******************************************************************
@@ -521,7 +534,7 @@ XBSYSAPI EXPORTNUM(363) int_xt XCDECL RtlVsnprintf
 	IN pchar_xt string,
 	IN size_xt count,
 	IN LPCCH format,
-	...
+	IN pchar_xt args
 );
 
 // ******************************************************************
@@ -531,7 +544,7 @@ XBSYSAPI EXPORTNUM(364) int_xt XCDECL RtlVsprintf
 (
 	IN pchar_xt string,
 	IN LPCCH format,
-	...
+	IN pchar_xt args
 );
 
 XBSYSAPI EXPORTNUM(367) ntstatus_xt XBOXAPI UnknownAPI367
@@ -568,6 +581,22 @@ XBSYSAPI EXPORTNUM(372) ntstatus_xt XBOXAPI IrtClientInitFast // PROFILING
 XBSYSAPI EXPORTNUM(373) ntstatus_xt XBOXAPI IrtSweep // PROFILING
 (
 	// UNKNOWN ARGUMENTS
+);
+
+// Wrappers
+XBSYSAPI EXPORTNUM(363) int_xt XCDECL WRAP(RtlVsnprintf)
+(
+	IN PCHAR string,
+	IN size_xt count,
+	IN LPCCH format,
+	IN va_list args
+);
+
+XBSYSAPI EXPORTNUM(364) int_xt XCDECL WRAP(RtlVsprintf)
+(
+	IN PCHAR string,
+	IN LPCCH format,
+	IN va_list args
 );
 
 }

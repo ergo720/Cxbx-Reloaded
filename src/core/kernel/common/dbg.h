@@ -31,7 +31,11 @@ XBSYSAPI EXPORTNUM(7) ntstatus_xt XBOXAPI DbgLoadImageSymbols
 
 XBSYSAPI EXPORTNUM(8) ulong_xt XCDECL DbgPrint
 (
+#ifndef CPU_EMU
+	PCHAR  Format, ...
+#else
 	pchar_xt  Format, ...
+#endif
 );
 XBSYSAPI EXPORTNUM(10) ulong_xt XBOXAPI DbgPrompt
 (

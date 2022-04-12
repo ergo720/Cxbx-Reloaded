@@ -93,13 +93,25 @@ XBSYSAPI EXPORTNUM(7) xbox::ntstatus_xt XBOXAPI xbox::DbgLoadImageSymbols
 // ******************************************************************
 XBSYSAPI EXPORTNUM(8) xbox::ulong_xt XCDECL xbox::DbgPrint
 (
+#ifndef CPU_EMU
+	PCHAR  xFormat, ...
+)
+{
+	LOG_FUNC_BEGIN;
+	LOG_FUNC_ARG(xFormat)
+	LOG_FUNC_ARG("...")
+	LOG_FUNC_END;
+
+	pchar_xt Format{ xFormat };
+#else
 	pchar_xt  Format, ...
 )
 {
 	LOG_FUNC_BEGIN;
-		LOG_FUNC_ARG(Format)
-		LOG_FUNC_ARG("...")
-		LOG_FUNC_END;
+	LOG_FUNC_ARG(Format)
+	LOG_FUNC_ARG("...")
+	LOG_FUNC_END;
+#endif
 
 	if (Format) {
 		va_list argp, argp_copy;
