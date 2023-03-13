@@ -555,6 +555,7 @@ xbox::void_xt NTAPI xbox::KiTimerExpiration
 	PKDPC TimerDpc;
 	ULONG Period;
 	DPC_QUEUE_ENTRY DpcEntry[MAX_TIMER_DPCS];
+	bool unwaited = false;
 
 	/* Query system and interrupt time */
 	KeQuerySystemTime((PLARGE_INTEGER)&SystemTime);
@@ -617,6 +618,7 @@ xbox::void_xt NTAPI xbox::KiTimerExpiration
 				if (!IsListEmpty(&Timer->Header.WaitListHead))
 				{
 					KiWaitTestNoYield(Timer, 0);
+					unwaited = true;
 				}
 
 				/* Check if we have a period */
@@ -753,6 +755,10 @@ xbox::void_xt NTAPI xbox::KiTimerExpiration
 		/* Unlock the dispatcher */
 		KiUnlockDispatcherDatabase(OldIrql);
 		KiTimerUnlock();
+	}
+
+	if (unwaited) {
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 	}
 }
 
