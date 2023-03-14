@@ -422,9 +422,11 @@ XBSYSAPI EXPORTNUM(255) xbox::ntstatus_xt NTAPI xbox::PsCreateSystemThreadEx
 			*ThreadHandle, eThread->UniqueThread, handle, ThreadId);
 
 		ResumeThread(handle);
+#if 0
 		while (eThread->Tcb.State == Initialized) {
 			std::this_thread::yield();
 		}
+#endif
 	}
 
 	RETURN(X_STATUS_SUCCESS);
