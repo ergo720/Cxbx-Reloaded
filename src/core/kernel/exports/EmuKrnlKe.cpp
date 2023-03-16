@@ -1727,11 +1727,16 @@ XBSYSAPI EXPORTNUM(140) xbox::ulong_xt NTAPI xbox::KeResumeThread
 
 	char_xt OldCount = Thread->SuspendCount;
 	if (OldCount != 0) {
+		const auto &nativeHandle = GetNativeHandle<true>(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+		Thread->SuspendCount = ResumeThread(*nativeHandle);
+		OldCount = Thread->SuspendCount;
+#if 0
 		--Thread->SuspendCount;
 		if (Thread->SuspendCount == 0) {
 			++Thread->SuspendSemaphore.Header.SignalState;
 			KiWaitTest(&Thread->SuspendSemaphore, 0);
 		}
+#endif
 	}
 
 	KiUnlockDispatcherDatabase(OldIrql);
@@ -2087,12 +2092,21 @@ XBSYSAPI EXPORTNUM(152) xbox::ulong_xt NTAPI xbox::KeSuspendThread
 	}
 
 	if (Thread->ApcState.ApcQueueable == TRUE) {
+		// JSRF creates a thread at 0x0013BC30 and then it attempts to continuously suspend/resume it. Unfortunately, this thread performs a never ending loop (and
+		// terminates if it ever exit the loop), and never calls any kernel function in the middle. This means that our ssupend APC will never be executed and so
+		// we cannot suspend such thread. Thus, we will always have to rely on the host to do the suspension, as long as we do direct execution. Note that this is
+		// a general issue for all kernel APCs too.
+		const auto &nativeHandle = GetNativeHandle<true>(reinterpret_cast<PETHREAD>(Thread)->UniqueThread);
+		Thread->SuspendCount = SuspendThread(*nativeHandle);
+		OldCount = Thread->SuspendCount;
+#if 0
 		++Thread->SuspendCount;
 		if (OldCount == 0) {
 			if (KiInsertQueueApc(&Thread->SuspendApc, 0) == FALSE) {
 				--Thread->SuspendSemaphore.Header.SignalState;
 			}
 		}
+#endif
 	}
 
 	KiUnlockDispatcherDatabase(OldIrql);
