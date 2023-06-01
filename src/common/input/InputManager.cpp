@@ -590,17 +590,17 @@ bool InputDeviceManager::UpdateInputLightgun(std::shared_ptr<InputDevice> &Devic
 		for (int i = 10; i < 14; i += 2) {
 			ControlState state_plus = (bindings[i] != nullptr) ? dynamic_cast<InputDevice::Input *>(bindings[i])->GetState() : 0.0;
 			ControlState state_minus = (bindings[i + 1] != nullptr) ? dynamic_cast<InputDevice::Input *>(bindings[i + 1])->GetState() : 0.0;
-			ControlState state = state_plus ? state_plus * 0x7FFF : state_minus ? -state_minus * 0x8000 : 0.0;
+			ControlState state = state_plus ? state_plus * 0x61A8 : state_minus ? -state_minus * 0x61A8 : 0.0;
 			switch (i)
 			{
 			case 10: {
-				xbox::short_xt offset = std::abs(state) > 16383.0 ? g_devs[Port_num].info.ligthgun.offset_upp_x : g_devs[Port_num].info.ligthgun.offset_x;
+				xbox::short_xt offset = g_devs[Port_num].info.ligthgun.offset_upp_x + g_devs[Port_num].info.ligthgun.offset_x;
 				in_buf->sThumbLX = static_cast<int16_t>(state) + offset;
 			}
 			break;
 
 			case 12: {
-				xbox::short_xt offset = std::abs(state) > 16383.0 ? g_devs[Port_num].info.ligthgun.offset_upp_y : g_devs[Port_num].info.ligthgun.offset_y;
+				xbox::short_xt offset = g_devs[Port_num].info.ligthgun.offset_upp_y + g_devs[Port_num].info.ligthgun.offset_y;
 				in_buf->sThumbLY = static_cast<int16_t>(state) + offset;
 			}
 			break;
